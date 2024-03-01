@@ -19,6 +19,7 @@ set(C_FORTRAN_LIB_SRCS
     utils.f90
     ventilation.f90
     wave_transmission.f90
+    surfactant.f90
 )
 
 set(C_C_LIB_SRCS
@@ -39,6 +40,7 @@ set(C_C_LIB_SRCS
     utils.c
     ventilation.c
     wave_transmission.c
+    surfactant.c
 )
 
 set(C_LIB_HDRS
@@ -60,6 +62,7 @@ set(C_LIB_HDRS
   utils.h
   ventilation.h
   wave_transmission.h
+  surfactant.h
 )
 
 add_library(aether_c_fortran STATIC ${C_FORTRAN_LIB_SRCS})
