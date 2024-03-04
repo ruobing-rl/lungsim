@@ -12,23 +12,22 @@ contains
 !
 !##############################################################################
 
-  subroutine calculate_surface_tension_c(volume_mean, volume_change, frequency, volumes, radii, area, dA, &
-    surf_concentration, gamma_star, gamma_max, bulk_c, k_a, k_d, m2, sigma, sigma_hat) bind(C, name="calculate_surface_tension_c")
+  subroutine update_surface_tension_c(surf_concentration, surface_tension) &
+          bind(C, name="update_surface_tension_c")
 
-    use surfactant, only: calculate_surface_tension
+    use surfactant, only: update_surface_tension
+    use arrays,only: dp
     implicit none
 
+    real(dp), intent(out) :: surface_tension(:)
 
-    real(dp) :: volume_mean, volume_change, frequency, gamma_star, gamma_max, bulk_c, k_a, k_d, m2, sigma_hat
-    real(dp), allocatable :: volumes(:), radii(:), area(:), dA(:), surf_concentration(:), sigma(:), Pc_alv(:)
-    integer :: num_steps, i
-    real(dp) :: dt, endt
-
-    call calculate_surface_tension(volume_mean, volume_change, frequency, volumes, radii, area, dA, surf_concentration, &
-            gamma_star, gamma_max, bulk_c, k_a, k_d, m2, sigma, sigma_hat)
+    real(dp) :: surf_concentration(:)
 
 
-  end subroutine calculate_surface_tension_c
+    call update_surface_tension(surf_concentration, surface_tension)
+
+
+  end subroutine update_surface_tension_c
 
 !##############################################################################
 
