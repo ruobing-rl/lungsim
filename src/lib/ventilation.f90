@@ -17,7 +17,8 @@ module ventilation
   use indices
   use other_consts
   use precision
-  
+
+
   implicit none
   !Module parameters
 
@@ -468,6 +469,8 @@ contains
     real(dp),intent(out) :: ppl_current
     ! Local variables
     integer :: ne,np2,nunit
+
+
     character(len=60) :: sub_name
 
     ! --------------------------------------------------------------------------
@@ -483,6 +486,7 @@ contains
             node_field(nj_aw_press,np2)
     enddo !noelem
     ppl_current = ppl_current/num_units
+
 
     call enter_exit(sub_name,2)
 

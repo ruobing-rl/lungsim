@@ -12,6 +12,8 @@ module surfactant
 
   !use ventilation
   use precision
+  use diagnostics
+
 
   implicit none
 
@@ -198,5 +200,58 @@ contains
 
   end subroutine update_surface_tension
 !##############################################################################
+
+
+  subroutine write_results(t,volumes,radii,area,dA, &
+       surf_concentration,surface_tension)
+
+    real(dp), allocatable :: volumes(:), radii(:), area(:), dA(:), surf_concentration(:), surface_tension(:)
+    integer :: num_steps, i
+    real :: dt, endt,t
+
+
+    character(len=60) :: sub_name
+
+    ! --------------------------------------------------------------------------
+
+    sub_name = 'write_results'
+    call enter_exit(sub_name,1)
+
+    !do i = 1, num_steps
+    !   print '("At t = ", F8.4, "  Volume = ", F12.8, "  Radius = ", F12.8, "  Area = ", F12.8, "  dA = ", F12.8,  &
+    !    " surf_concentration = ",F12.8, " surface_tension= ", F12.8)', &
+    !    (i-1) * 0.005_dp , volumes(i), radii(i), area(i), dA(i), surf_concentration(i), surface_tension(i)
+
+    !end do
+
+    num_steps = int(60 / 0.00083 ) + 1
+    !num_steps = int(endt / dt) + 1
+
+
+    allocate(volumes(num_steps))
+    allocate(radii(num_steps))
+    allocate(area(num_steps))
+    allocate(dA(num_steps))
+    allocate(surf_concentration(num_steps))
+    allocate(surface_tension(num_steps))
+
+    write(*,'(2X,''Time'',3X,''Volume'',4X,''Radius'',5X,''Area'',5X,&
+            &''dA'',4X,''Surf_concentration'',5X,''surface_tension'')')
+
+    write(*,'(F7.3,2(F8.1),8(F8.2))') &
+         (i-1) * 0.005_dp , &  !time, flow, tidal
+         volumes , & !res (cmH2O/L.s)
+         radii , & !total model compliance
+         area, & !Ppl (cmH2O)
+         dA, & !mean Ptp (cmH2O)
+         surf_concentration, & !total model volume (L)
+         surface_tension  !Pmuscle (cmH2O)
+
+
+    call enter_exit(sub_name,2)
+
+  end subroutine write_results
+!##############################################################################
+
 
 end module surfactant
