@@ -115,7 +115,7 @@ contains
     call update_elem_field(1.0_dp)
     call update_resistance
     call volume_of_mesh(init_vol,volume_tree)
-    
+
 !!! distribute the initial tissue unit volumes along the gravitational axis.
     call set_initial_volume(gdirn,COV,FRC*1.0e+6_dp,RMaxMean,RMinMean)
     undef = refvol * (FRC*1.0e+6_dp-volume_tree)/dble(elem_units_below(1))
