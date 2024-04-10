@@ -33,6 +33,7 @@ contains
 
     use surfactant, only: evaluate_surf
     use arrays,only: dp
+
     implicit none
 
     integer :: i, num_steps
