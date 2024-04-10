@@ -883,120 +883,120 @@ contains
 !!!#############################################################################
 !!!#############################################################################
 
-  !subroutine update_alveolar_info(dt,time)
-
-
-    !real(dp), dimension(:,:), allocatable :: alv_unit_field
-    !real(dp), dimension(:,:), allocatable :: alv_radii
-    !real(dp), dimension(:,:), allocatable :: alv_area
-    !real(dp), dimension(:,:), allocatable :: alv_dA
-    !real(dp), dimension(:,:), allocatable :: alv_area_over_breath
-
-    !real(dp), dimension(:,:), allocatable :: unit_field_pre
-    !real(dp), dimension(:,:), allocatable :: unit_field_current
-
-    !real(dp),intent(in) :: dt,time
-
-    !integer :: nalv,num_time,ntime
-
-    !character(len=60) :: sub_name
-
-    ! --------------------------------------------------------------------------
-
-    !sub_name = 'update_alveolar_info'
-    !call enter_exit(sub_name,1)
-
-    !allocate( alv_unit_field(nu_vol,num_units))
-    !allocate( unit_field_pre(nu_vol,num_units))
-    !allocate( unit_field_current(nu_vol,num_units))
-    !allocate( alv_radii(nu_vol,num_units))
-    !allocate( alv_area(nu_vol,num_units))
-    !allocate( alv_area_over_breath(num_time,num_units))
-
-    !allocate( alv_dA(nu_vol,num_units))
-
-    !alv_unit_field=0.0_dp
-    !alv_radii=0.0_dp
-    !alv_area=0.0_dp
-    !alv_dA=0.0_dp
-    !num_time=0
-
-    !do nalv = 1,num_units
-       !print*,'pre_alv', alv_unit_field(nu_vol,nalv)
-    !   unit_field_pre(nu_vol,nalv)=unit_field(nu_vol,nalv)
-       !print*,'pre',unit_field_pre(nu_vol,nalv)
-     !  unit_field(nu_vol,nalv)= unit_field(nu_vol,nalv)!in mm^3
-     !  unit_field_current(nu_vol,nalv)=unit_field(nu_vol,nalv)
-       !print*,'cur',unit_field_current(nu_vol,nalv)
-       !print*,'after_alv', alv_unit_field(nu_vol,nalv)
-     !  alv_radii(nu_vol,nalv) = (3.0_dp * alv_unit_field(nu_vol,nalv) / (4.0_dp * PI)) ** (1.0_dp / 3.0_dp)
-
-     !  alv_area(nu_vol,nalv)=4.0_dp * pi * (alv_radii(nu_vol,nalv)**2.0_dp)
-
-
-      ! num_time=num_time+1
-            !num_time=int(time/dt)
-       !alv_area_over_breath(num_time,num_units)=alv_area(nu_vol,num_units)
-   ! enddo
-
-    ! num_time=int(time /dt)
-    ! do ntime=1,num_time
-        !call update_alveolar_info(dt,time)
-    !     alv_area_over_breath(ntime,num_units)=alv_area(nu_vol,num_units)
-    ! end do
-
-
-    !num_time=int(time /dt)
-   !do ntime = 1, num_time
-    !  alv_area_over_breath(num_time,num_units)=alv_area(nu_vol,num_units)
-   !end do
-    !do nalv = 2, nu_vol
-    !alv_dA(nu_vol,1:num_units-1)=(alv_area(nu_vol,2:num_units)-alv_area(nu_vol,1:num_units-1))/dt;
-    !end do
-
-
-    !print*, 'alveolar', alv_unit_field(nu_vol,1)
-    !print*, 'alveolar radii', alv_radii(nu_vol,1)
-    !print*, 'alveolar area', alv_area(nu_vol,1)
-    !print*, 'alveolar dA', alv_dA(nu_vol,1)
-    !print*, 'size', alv_area(1,1)
-    !print*, 'row', nu_vol
-    !print*, 'column', num_units
-    !do alv = 1, num_unit
-    !print *, alv_area_over_breath(:,1)
-    !end do
-   ! print*, 'alveolar', alv_area_over_breath(num_time,1)
-    !print*, 'ntime', num_time
-    !print '("At alv_unit_field = ", F8.4)', alv_unit_field(nu_vol,1)
-
-
-    !if(abs(time).lt.zero_tol)then
+!  subroutine update_alveolar_info(dt,time)
+!
+!
+!    real(dp), dimension(:,:), allocatable :: alv_unit_field
+!    real(dp), dimension(:,:), allocatable :: alv_radii
+!    real(dp), dimension(:,:), allocatable :: alv_area
+!    real(dp), dimension(:,:), allocatable :: alv_dA
+!    real(dp), dimension(:,:), allocatable :: alv_area_over_breath
+!
+!    real(dp), dimension(:,:), allocatable :: unit_field_pre
+!    real(dp), dimension(:,:), allocatable :: unit_field_current
+!
+!    real(dp),intent(in) :: dt,time
+!
+!    integer :: nalv,num_time,ntime
+!
+!    character(len=60) :: sub_name
+!
+!     --------------------------------------------------------------------------
+!
+!    sub_name = 'update_alveolar_info'
+!    call enter_exit(sub_name,1)
+!
+!    allocate( alv_unit_field(nu_vol,num_units))
+!    allocate( unit_field_pre(nu_vol,num_units))
+!    allocate( unit_field_current(nu_vol,num_units))
+!    allocate( alv_radii(nu_vol,num_units))
+!    allocate( alv_area(nu_vol,num_units))
+!    allocate( alv_area_over_breath(num_time,num_units))
+!
+!    allocate( alv_dA(nu_vol,num_units))
+!
+!    alv_unit_field=0.0_dp
+!    alv_radii=0.0_dp
+!    alv_area=0.0_dp
+!    alv_dA=0.0_dp
+!    num_time=0
+!
+!    do nalv = 1,num_units
+!       print*,'pre_alv', alv_unit_field(nu_vol,nalv)
+!       unit_field_pre(nu_vol,nalv)=unit_field(nu_vol,nalv)
+!       print*,'pre',unit_field_pre(nu_vol,nalv)
+!       unit_field(nu_vol,nalv)= unit_field(nu_vol,nalv)!in mm^3
+!       unit_field_current(nu_vol,nalv)=unit_field(nu_vol,nalv)
+!       print*,'cur',unit_field_current(nu_vol,nalv)
+!       print*,'after_alv', alv_unit_field(nu_vol,nalv)
+!       alv_radii(nu_vol,nalv) = (3.0_dp * alv_unit_field(nu_vol,nalv) / (4.0_dp * PI)) ** (1.0_dp / 3.0_dp)
+!
+!       alv_area(nu_vol,nalv)=4.0_dp * pi * (alv_radii(nu_vol,nalv)**2.0_dp)
+!
+!
+!       num_time=num_time+1
+!            num_time=int(time/dt)
+!       alv_area_over_breath(num_time,num_units)=alv_area(nu_vol,num_units)
+!    enddo
+!
+!     num_time=int(time /dt)
+!     do ntime=1,num_time
+!        call update_alveolar_info(dt,time)
+!         alv_area_over_breath(ntime,num_units)=alv_area(nu_vol,num_units)
+!     end do
+!
+!
+!    num_time=int(time /dt)
+!   do ntime = 1, num_time
+!      alv_area_over_breath(num_time,num_units)=alv_area(nu_vol,num_units)
+!   end do
+!    do nalv = 2, nu_vol
+!    alv_dA(nu_vol,1:num_units-1)=(alv_area(nu_vol,2:num_units)-alv_area(nu_vol,1:num_units-1))/dt;
+!    end do
+!
+!
+!    print*, 'alveolar', alv_unit_field(nu_vol,1)
+!    print*, 'alveolar radii', alv_radii(nu_vol,1)
+!    print*, 'alveolar area', alv_area(nu_vol,1)
+!    print*, 'alveolar dA', alv_dA(nu_vol,1)
+!    print*, 'size', alv_area(1,1)
+!    print*, 'row', nu_vol
+!    print*, 'column', num_units
+!    do alv = 1, num_unit
+!    print *, alv_area_over_breath(:,1)
+!    end do
+!    print*, 'alveolar', alv_area_over_breath(num_time,1)
+!    print*, 'ntime', num_time
+!    print '("At alv_unit_field = ", F8.4)', alv_unit_field(nu_vol,1)
+!
+!
+!    if(abs(time).lt.zero_tol)then
 !!! write out the header information for run-time output
-    !   write(*,'(2X,''Time'',3X,''avol1'')')
-    !   write(*,'(3X,''(s)'')')
-
-    !   write(*,'(F7.3,8(F15.4),9(F8.0))') &
-     !       0.0_dp,0.0_dp,0.0_dp, &  !time, flow, tidal
-     !       alv_unit_field(nu_vol,1), &
-     !       alv_radii(nu_vol,1), &
-     !       alv_area(nu_vol,1)!, &
-            !alv_area_over_breath(num_time,1)
-            !alv_dA(nu_vol,1)
-    !else
-     !  write(*,'(F7.3,8(F15.4),9(F8.0))') &
-     !       time, & !time through breath (s)
-     !       alv_unit_field(nu_vol,1), &
-     !       alv_radii(nu_vol,1), &
-     !       alv_area(nu_vol,1)!, &
-            !alv_area_over_breath(num_time,1)
-            !alv_dA(nu_vol,1)
-    !endif
-
-
-    !deallocate(alv_unit_field)
-    !call enter_exit(sub_name,2)
-
-  !end subroutine update_alveolar_info
+!       write(*,'(2X,''Time'',3X,''avol1'')')
+!       write(*,'(3X,''(s)'')')
+!
+!       write(*,'(F7.3,8(F15.4),9(F8.0))') &
+!            0.0_dp,0.0_dp,0.0_dp, &  !time, flow, tidal
+!            alv_unit_field(nu_vol,1), &
+!            alv_radii(nu_vol,1), &
+!            alv_area(nu_vol,1)!, &
+!            alv_area_over_breath(num_time,1)
+!            alv_dA(nu_vol,1)
+!    else
+!       write(*,'(F7.3,8(F15.4),9(F8.0))') &
+!            time, & !time through breath (s)
+!            alv_unit_field(nu_vol,1), &
+!            alv_radii(nu_vol,1), &
+!            alv_area(nu_vol,1)!, &
+!            alv_area_over_breath(num_time,1)
+!            alv_dA(nu_vol,1)
+!    endif
+!
+!
+!    deallocate(alv_unit_field)
+!    call enter_exit(sub_name,2)
+!
+!  end subroutine update_alveolar_info
 
 !!!#############################################################################
 !!!#############################################################################
