@@ -10,8 +10,8 @@ module surfactant
 !This module handles all code specific to simulating surfactant in the acinus.
   
 
-  !use ventilation
-  !use geometry
+  use ventilation
+!  use geometry
   use precision
   use diagnostics
   use arrays
@@ -57,7 +57,8 @@ module surfactant
   public evaluate_surf
   public update_surfactant_concentration
   public update_surface_tension
-  !public alv_collapse_pressure
+!  public alv_collapse_pressure
+
 contains
 !
 !##############################################################################
@@ -66,20 +67,20 @@ subroutine evaluate_surf !(num_steps, dt, t, volumes, radii, area, dA, surf_conc
 
 
     !integer :: i,ntime
-    integer :: num_steps, num_time,num_units,nu_vol,nunit
+    integer :: num_steps, num_time,num_units,nu_vol,nalv
 
-    real(dp) :: dt , t, endt
+    real(dp) :: dt !, t, endt,time
 
 !    real(dp), allocatable :: volumes(:)
 !    real(dp), allocatable :: radii(:)
 !    real(dp), allocatable :: area(:)
 !    real(dp), allocatable :: dA(:)
-    real(dp), dimension(:,:), allocatable ::alv_area_pre
+    real(dp), dimension(:,:), allocatable ::alv_area_current
     real(dp), dimension(:,:), allocatable ::alv_dA
-    real(dp), dimension(:,:), allocatable ::alv_radii_pre
+    real(dp), dimension(:,:), allocatable ::alv_radii_current
     real(dp), dimension(:,:), allocatable :: surf_concentration
     real(dp), dimension(:,:), allocatable :: surface_tension
-    !real(dp), dimension(:,:), allocatable :: alv_collapse_pressure
+    real(dp), dimension(:,:), allocatable :: alv_collapse_pressure
     !real(dp), dimension(:,:), allocatable :: alv_radii
     !real(dp), dimension(:,:), allocatable :: alv_area
 
@@ -92,11 +93,12 @@ subroutine evaluate_surf !(num_steps, dt, t, volumes, radii, area, dA, surf_conc
 ! --------------------------------------------------------------------------
     sub_name = 'evaluate_surf'
     call enter_exit(sub_name,1)
-      endt=12.0_dp
-      dt = 0.05_dp
-      num_steps = int(endt / dt ) + 1
-      !num_steps = int(time / dt )
-      num_time=240.0_dp
+
+!      endt=12.0_dp
+!      dt = 0.05_dp
+!      num_steps = int(endt / dt ) + 1
+!      !num_steps = int(time / dt )
+!      num_time=240.0_dp
 
 !      allocate(volumes(num_steps))
 !      allocate(radii(num_steps))
@@ -105,27 +107,24 @@ subroutine evaluate_surf !(num_steps, dt, t, volumes, radii, area, dA, surf_conc
 !      allocate(surf_concentration(nu_vol,num_units))
 !      allocate(surface_tension(nu_vol,num_units))
 
-      ! Allocate memory for the time series array
-      !allocate(alv_area_over_breath(num_time_steps, num_units))
+
       !call evaluate_vent
 
-      !call update_unit_volume(dt)
       !print*, 'size', alv_area(1,1)
       !print*, 'row', nu_vol
       !print*, 'column', num_units
 
 
-      !call update_alveolar_info(dt)
+!      call update_alveolar_info(dt,time)
      ! call update_unit_volume(dt)
       !call update_surface_area(volumes, radii, area, dA)
-      call update_surfactant_concentration(alv_area_pre, alv_dA, surf_concentration,nunit)
-      call update_surface_tension(surf_concentration, surface_tension,nunit)
-      !call alv_collapse_pressure(alv_radii_pre, surface_tension,nunit)
+
+      call update_surfactant_concentration(dt, alv_area_current, alv_dA, surf_concentration)
+      call update_surface_tension( surf_concentration, surface_tension, alv_radii_current, alv_collapse_pressure)
+!      call alv_collapse_pressure(alv_radii_current, surface_tension, alv_collapse_pressure)
 
       !call write_results(volumes,radii,area,dA, surf_concentration,surface_tension)
-         !Your existing processing here
-         !For example, printing or modifying arrays
-      !deallocate(volumes, radii, area, dA, surf_concentration, surface_tension)
+
       !print *, "Volume, Radius, Surface Area, surfactant concentration and surface tention values at selected timesteps:"
 !      do i = 1, num_steps
 !        print '("At t = ", F8.4, "  Volume = ", F12.8, "  Radius = ", F12.8, "  Area = ", F12.8, "  dA = ", &
@@ -136,12 +135,12 @@ subroutine evaluate_surf !(num_steps, dt, t, volumes, radii, area, dA, surf_conc
 
 
 
-!      deallocate(volumes)
-!      deallocate(radii)
-!      deallocate(area)
-!      deallocate(dA)
-!      deallocate(surf_concentration)
-!      deallocate(surface_tension)
+      deallocate(alv_area_current)
+      deallocate(alv_dA)
+      deallocate(alv_radii_current)
+      deallocate(alv_collapse_pressure)
+      deallocate(surf_concentration)
+      deallocate(surface_tension)
 
     call enter_exit(sub_name,2)
 
@@ -201,61 +200,55 @@ subroutine evaluate_surf !(num_steps, dt, t, volumes, radii, area, dA, surf_conc
 !
 !*subname:* calculate surfactant concentration in each alveolar unit
 
-  subroutine update_surfactant_concentration(alv_area_pre, alv_dA, surf_concentration,nunit)
+  subroutine update_surfactant_concentration(dt, alv_area_current, alv_dA, surf_concentration)
 
-    !real(dp), intent(in) :: volume_mean, volume_change, gamma_star, gamma_max, bulk_c, k_a, &k_d, sigma_hat, m2
+    real(dp), dimension(:,:), intent(in) :: alv_area_current, alv_dA
 
-    real(dp), dimension(:,:), intent(in) :: alv_area_pre, alv_dA
-    integer,intent(in) :: nunit
-    real(dp), dimension(:,:), intent(out) :: surf_concentration
-    !real(dp), dimension(:,:), allocatable :: surf_concentration
+    real(dp), dimension(:,:), intent(inout) :: surf_concentration
 
-    integer :: num_steps, i, nu_vol
+    integer :: nalv
 
-    real(dp) :: dt, t,endt
+    real(dp), intent(in) :: dt
 
     real(dp), parameter :: gamma_star = 0.3e-6_dp !
     real(dp), parameter :: gamma_max = 0.345e-6_dp !
     real(dp), parameter :: bulk_c = 1e-3_dp ! bulk concentration  g/ml
     real(dp), parameter :: k_a = 10.0_dp**4 !6*10**5 ! adsorption coefficient  ml/(g*sec)
     real(dp), parameter :: k_d = k_a/(1.2_dp*(10.0_dp**5)) !desorption coefficient sec^(-1)
-
+!    real(dp), parameter :: surf_concentration= gamma_star/2.0_dp
 
     character(len=60) :: sub_name
 
-
-!    endt=12.0_dp
-!    dt = 0.05_dp  ! Time step
-!    num_steps = int(endt / dt) + 1
 
 
  !--------------------------------------------------------------------------
 
   sub_name = 'surf_concentration'
     call enter_exit(sub_name,1)
-    !allocate(surf_concentration(nu_vol,num_units))
 
 
-    !k_d = k_a/(1.2*(10**5))
-    !surf_concentration(nu_vol,1) = gamma_star/2
+    do nalv = 1,num_units
 
-    !do nunit = 1,num_units
-      if (surf_concentration(nu_vol,nunit) .le. gamma_star) then
-        surf_concentration(nu_vol,nunit)=surf_concentration(nu_vol,nunit)+dt*(k_a*bulk_c &
-          *(gamma_star-surf_concentration(nu_vol,nunit))-k_d*surf_concentration(nu_vol,nunit) &
-                -(surf_concentration(nu_vol,nunit)/alv_area_pre(nu_vol,nunit))*alv_dA(nu_vol,nunit))
 
-      elseif ((surf_concentration(nu_vol,nunit) .ge. gamma_max) .and. (alv_dA(nu_vol,nunit) .lt. 0.0)) then
-        surf_concentration(nu_vol,nunit)=gamma_max
+
+      if (surf_concentration(nu_vol,nalv) .le. gamma_star) then
+        surf_concentration(nu_vol,nalv)=surf_concentration(nu_vol,nalv)+dt*(k_a*bulk_c &
+          *(gamma_star-surf_concentration(nu_vol,nalv))-k_d*surf_concentration(nu_vol,nalv) &
+                -(surf_concentration(nu_vol,nalv)/alv_area_current(nu_vol,nalv))*alv_dA(nu_vol,nalv))
+
+      elseif ((surf_concentration(nu_vol,nalv) .ge. gamma_max) .and. (alv_dA(nu_vol,nalv) .lt. 0.0)) then
+        surf_concentration(nu_vol,nalv)=gamma_max
 
       else
-        surf_concentration(nu_vol,nunit)=surf_concentration(nu_vol,nunit)+ &
-                dt*((-surf_concentration(nu_vol,nunit)/alv_area_pre(nu_vol,nunit))*alv_dA(nu_vol,nunit))
+        surf_concentration(nu_vol,nalv)=surf_concentration(nu_vol,nalv)+ &
+                dt*((-surf_concentration(nu_vol,nalv)/alv_area_current(nu_vol,nalv))*alv_dA(nu_vol,nalv))
 
       end if
-    !end do
-
-
+    end do
+!    print*,'dt2',dt
+!    print*, 'alveolar area2', alv_area(nu_vol,1)
+!    print*, 'dA2', alv_dA(nu_vol,1)
+!    print*,'surf_concentration2',surf_concentration(nu_vol,1)
     !deallocate(surf_concentration)
     call enter_exit(sub_name,2)
 
@@ -264,16 +257,17 @@ subroutine evaluate_surf !(num_steps, dt, t, volumes, radii, area, dA, surf_conc
 !
 !*subname:* calculate surface tension for each alveolar unit
 
-  subroutine update_surface_tension(surf_concentration, surface_tension,nunit)
+  subroutine update_surface_tension(surf_concentration, surface_tension, alv_radii_current, alv_collapse_pressure)
 
-    !real(dp), intent(in) :: volume_mean, volume_change, gamma_star, gamma_max, bulk_c, k_a, &k_d, sigma_hat, m2
     real(dp), dimension(:,:), intent(in) :: surf_concentration
+    real(dp), dimension(:,:), intent(in) :: alv_radii_current
 
-    real(dp), dimension(:,:), intent(out) :: surface_tension
-    !real(dp), allocatable :: surface_tension(:)
-    integer :: num_steps, i, nunit, nu_vol
+    real(dp), dimension(:,:), intent(inout) :: surface_tension
+    real(dp), dimension(:,:), intent(out) :: alv_collapse_pressure
 
-    real(dp) :: dt, t,endt
+    integer :: nalv
+
+    real(dp) :: dt
 
 
     real(dp), parameter :: gamma_star = 0.3e-6_dp !
@@ -284,49 +278,50 @@ subroutine evaluate_surf !(num_steps, dt, t, volumes, radii, area, dA, surf_conc
 
     character(len=60) :: sub_name
 
-
-!    endt=12.0_dp
-!    dt = 0.05_dp  ! Time step
-!    num_steps = int(endt / dt) + 1
-
  !--------------------------------------------------------------------------
 
   sub_name = 'surface_tension'
     call enter_exit(sub_name,1)
 
 
-    !call update_surfactant_concentration
 
-    !do nunit = 1,num_units
-      if (surf_concentration(nu_vol,nunit) .le. gamma_star) then
-        surface_tension(nu_vol,nunit)=(surface_tension_hat-70)*(surf_concentration(nu_vol,nunit)/gamma_star)+70
+    do nalv = 1,num_units
 
-      elseif ((surf_concentration(nu_vol,nunit) .ge. gamma_max)) then!.and. (dA(i) .lt. 0.0)) then
-        surface_tension(nu_vol,nunit)=-m2*(gamma_max/gamma_star)+(m2+surface_tension_hat)
+      if (surf_concentration(nu_vol,nalv) .le. gamma_star) then
+        surface_tension(nu_vol,nalv)=(surface_tension_hat-70)*(surf_concentration(nu_vol,nalv)/gamma_star)+70
+
+      elseif ((surf_concentration(nu_vol,nalv) .ge. gamma_max)) then!.and. (dA(i) .lt. 0.0)) then
+        surface_tension(nu_vol,nalv)=-m2*(gamma_max/gamma_star)+(m2+surface_tension_hat)
 
       else
-        surface_tension(nu_vol,nunit)=-m2*(surf_concentration(nu_vol,nunit)/gamma_star)+(m2+surface_tension_hat)
+        surface_tension(nu_vol,nalv)=-m2*(surf_concentration(nu_vol,nalv)/gamma_star)+(m2+surface_tension_hat)
       end if
-   ! end do
+
+
+      alv_collapse_pressure(nu_vol,nalv)= ((2.0 *surface_tension(nu_vol,nalv)) /alv_radii_current(nu_vol,nalv))/10.0
+
+    end do
 
 
 
+
+    print*,'surface tension2',surface_tension(nu_vol,1)
 
     call enter_exit(sub_name,2)
 
   end subroutine update_surface_tension
 !##############################################################################
-!
-!  subroutine alv_collapse_pressure(alv_radii_pre, surface_tension,nunit)
+!!
+!  subroutine alv_collapse_pressure(alv_radii_current, surface_tension, alv_collapse_pressure)
 !
 !    !real(dp), intent(in) :: volume_mean, volume_change, gamma_star, gamma_max, bulk_c, k_a, &k_d, sigma_hat, m2
-!    real(dp), dimension(:,:), intent(in) :: alv_radii_pre, surface_tension
+!    real(dp), dimension(:,:), intent(in) :: alv_radii_current, surface_tension
 !
 !    real(dp), dimension(:,:), intent(out) :: alv_collapse_pressure
 !    !real(dp), allocatable :: surface_tension(:)
-!    integer :: num_steps, i, nunit, nu_vol
+!    integer :: nalv
 !
-!    real(dp) :: dt, t,endt
+!    real(dp) :: dt
 !
 !
 !
@@ -345,11 +340,11 @@ subroutine evaluate_surf !(num_steps, dt, t, volumes, radii, area, dA, surf_conc
 !
 !    !call update_surfactant_concentration
 !
-!    !do nunit = 1,num_units
-!    alv_collapse_pressure(nu_vol,nunit)= (2.0 *surface_tension(nu_vol,nunit)) /alv_radii_pre(nu_vol,nunit)
-!    !end do
+!    do nalv = 1,num_units
+!        alv_collapse_pressure(nu_vol,nalv)= ((2.0 *surface_tension(nu_vol,nalv)) /alv_radii_current(nu_vol,nalv))/10.0
+!    end do
 !
-!
+!    print*,'pressure2',alv_collapse_pressure(nu_vol,1)
 !
 !
 !    call enter_exit(sub_name,2)
