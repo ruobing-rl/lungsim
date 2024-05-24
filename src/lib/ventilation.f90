@@ -23,18 +23,21 @@ module ventilation
   !Module parameters
 
 
-    real(dp), dimension(:,:), allocatable :: unit_field_pre
-    real(dp), dimension(:,:), allocatable :: unit_field_current
-    real(dp), dimension(:,:), allocatable :: alv_field_pre
-    real(dp), dimension(:,:), allocatable :: alv_field_current
-    real(dp), dimension(:,:), allocatable :: alv_radii_pre
-    real(dp), dimension(:,:), allocatable :: alv_radii_current
-    real(dp), dimension(:,:), allocatable :: alv_area_pre
-    real(dp), dimension(:,:), allocatable :: alv_area_current
-    real(dp), dimension(:,:), allocatable :: alv_dA
-    real(dp), dimension(:,:), allocatable :: surf_concentration
-    real(dp), dimension(:,:), allocatable :: surface_tension
-    real(dp), dimension(:,:), allocatable :: alv_collapse_pressure
+  real(dp), dimension(:,:), allocatable :: unit_field_pre
+  real(dp), dimension(:,:), allocatable :: unit_field_current
+!  real(dp), dimension(:,:), allocatable :: alv_field_pre
+!  real(dp), dimension(:,:), allocatable :: alv_field_current
+  real(dp), dimension(:,:), allocatable :: alv_unit_field
+  real(dp), dimension(:,:), allocatable :: alv_unit_field_pre
+  real(dp), dimension(:,:), allocatable :: alv_unit_field_current
+  real(dp), dimension(:,:), allocatable :: alv_radii_pre
+  real(dp), dimension(:,:), allocatable :: alv_radii_current
+  real(dp), dimension(:,:), allocatable :: alv_area_pre
+  real(dp), dimension(:,:), allocatable :: alv_area_current
+  real(dp), dimension(:,:), allocatable :: alv_dA
+  real(dp), dimension(:,:), allocatable :: surf_concentration
+  real(dp), dimension(:,:), allocatable :: surface_tension
+  real(dp), dimension(:,:), allocatable :: alv_collapse_pressure
 
   !Module types
 
@@ -46,7 +49,7 @@ module ventilation
   public evaluate_uniform_flow
   public two_unit_test
   public sum_elem_field_from_periphery
-  !public update_unit_volume
+  public update_alveolar_info
 
   real(dp),parameter,private :: gravity = 9.81e3_dp         ! mm/s2
 !!! for air
@@ -115,8 +118,8 @@ contains
 
     allocate( unit_field_pre(nu_vol,num_units)) !n_time_steps
     allocate( unit_field_current(nu_vol,num_units))
-    allocate( alv_field_pre(nu_vol,num_units))
-    allocate( alv_field_current(nu_vol,num_units))
+    allocate( alv_unit_field_pre(nu_vol,num_units))
+    allocate( alv_unit_field_current(nu_vol,num_units))
     allocate( alv_radii_pre(nu_vol,num_units))
     allocate( alv_radii_current(nu_vol,num_units))
     allocate( alv_area_pre(nu_vol,num_units))
@@ -125,8 +128,7 @@ contains
     allocate( surf_concentration(nu_vol,num_units))
     allocate( surface_tension(nu_vol,num_units))
     allocate( alv_collapse_pressure(nu_vol,num_units))
-    surf_concentration = 0.3e-6_dp/2.0_dp ! gamma*/2
-    alv_dA=0.0_dp
+
 !!! Initialise variables:
     pmus_factor_in = 1.0_dp
     pmus_factor_ex = 1.0_dp
@@ -135,6 +137,8 @@ contains
     sum_tidal = 0.0_dp ! initialise the inspired and expired volumes
     sum_expid = 0.0_dp
     last_vol = 0.0_dp
+    surf_concentration = 0.3e-6_dp/2.0_dp ! gamma*/2
+    alv_dA=0.0_dp
 
 !!! set default values for the parameters that control the breathing simulation
 !!! these should be controlled by user input (showing hard-coded for now)
@@ -198,6 +202,7 @@ contains
        endtime = T_interval * n - 0.5_dp * dt ! the end time of this breath
        p_mus = 0.0_dp 
        ptrans_frc = SUM(unit_field(nu_pe,1:num_units))/num_units !ptrans at frc
+!       surf_concentration = 0.3e-6_dp/2.0_dp ! gamma*/2
 
        if(n.gt.1)then !write out 'end of breath' information
           call write_end_of_breath(init_vol,current_vol,pmus_factor_in, &
@@ -214,21 +219,21 @@ contains
           sum_tidal = 0.0_dp !reset the tidal volume
           sum_expid = 0.0_dp !reset the expired volume
           unit_field(nu_vt,1:num_units) = 0.0_dp !reset acinar tidal volume
+!          surf_concentration(nu_vol,1:num_units) = 0.3e-6_dp/2.0_dp ! gamma*/2
           sum_dpmus = 0.0_dp
           sum_dpmus_ei = 0.0_dp
        endif
        !print*,'unit_field', size(unit_field(nu_vt,1:num_units),1)
 !!! solve for a single breath (for time up to endtime)
 
-
+!       surf_concentration(nu_vol,1:num_units) = 0.3e-6_dp/2.0_dp ! gamma*/2 initial value of surfactant concentration
        do while (time.lt.endtime) 
           ttime = ttime + dt ! increment the breath time
           time = time + dt ! increment the whole simulation time
           time_step_curr = time_step_curr + 1
 
 !!!.......calculate the flow and pressure distribution for one time-step
-
-
+!          surf_concentration(nu_vol,1:num_units) = 0.3e-6_dp/2.0_dp ! gamma*/2
           call evaluate_vent_step(num_itns,chest_wall_compliance, &
                chestwall_restvol,dt,err_tol,init_vol,last_vol,current_vol, &
                Pcw,pmus_factor_ex,pmus_factor_in,pmus_step,p_mus,ppl_current, &
@@ -303,18 +308,18 @@ contains
 !    call export_terminal_solution(TERMINAL_EXNODEFILE,'terminals')
     !deallocate(alv_area_over_breath)
 
-    deallocate( unit_field_pre)
-    deallocate( unit_field_current)
-    deallocate( alv_field_pre)
-    deallocate( alv_field_current)
-    deallocate( alv_radii_pre)
-    deallocate( alv_radii_current)
-    deallocate( alv_area_pre)
+!    deallocate( unit_field_pre)
+!    deallocate( unit_field_current)
+!    deallocate( alv_unit_field_pre)
+!    deallocate( alv_unit_field_current)
+!    deallocate( alv_radii_pre)
+!    deallocate( alv_radii_current)
+!    deallocate( alv_area_pre)
     deallocate( alv_area_current)
     deallocate( alv_dA)
-    deallocate(surf_concentration)
-    deallocate(surface_tension)
-    deallocate(alv_collapse_pressure)
+!    deallocate(surf_concentration)
+!    deallocate(surface_tension)
+!    deallocate(alv_collapse_pressure)
 
     call enter_exit(sub_name,2)
 
@@ -335,10 +340,11 @@ contains
          press_in_total,ptrans_frc,texpn,time,tinsp,ttime,undef
     real(dp) :: last_vol,current_vol,Pcw,ppl_current,prev_flow,p_mus, &
          sum_dpmus,sum_dpmus_ei,sum_expid,sum_tidal,WOBe,WOB_insp,WOBe_insp, &
-         WOBr,WOBr_insp !, alv_unit_field
+         WOBr,WOBr_insp!, alv_area_current, alv_dA !, alv_unit_field
     !real(dp),allocatable :: alv_unit_field(:,:)
 !    real(dp), dimension(:,:), allocatable :: alv_area_pre
 !!    real(dp), dimension(:,:), allocatable :: alv_dA_time
+!    real(dp), dimension(:,:), allocatable :: alv_area_current
 !    real(dp), dimension(:,:), allocatable :: alv_dA
 !    real(dp), dimension(:,:), allocatable :: surf_concentration
 
@@ -403,8 +409,25 @@ contains
 !!! show alveolar infomation
     !call evaluate_surf
     !call update_surfactant_concentration(alv_area_pre, alv_dA, surf_concentration)
-    !call update_alveolar_info(dt,time)
+!    surf_concentration = 0.3e-6_dp/2.0_dp ! gamma*/2
+    call update_alveolar_info(dt,alv_area_current, alv_dA)
 
+
+    call update_surfactant_concentration(dt, alv_area_current, alv_dA, surf_concentration)
+
+    call update_surface_tension(surf_concentration, surface_tension, alv_radii_current, alv_collapse_pressure)
+
+!    print*, 'alveolar', alv_unit_field_pre(nu_vol,1)
+!    print*, 'alveolar', alv_unit_field_current(nu_vol,1)
+!    print*, 'alveolar radii', alv_radii_pre(nu_vol,1)
+!    print*, 'alveolar radii', alv_radii_current(nu_vol,1)
+!    print*, 'alveolar area', alv_area_pre(nu_vol,1)
+!    print*, 'alveolar area', alv_area_current(nu_vol,1)
+!    print*, 'alveolar dA', alv_dA(nu_vol,1)
+!    print*,'surf_concentration',surf_concentration(nu_vol,1)
+!    print*,'surface tension',surface_tension(nu_vol,1)
+!    print*,'pressure',alv_collapse_pressure(nu_vol,1)
+!    print*, 'ntime', time
 
 !    alv_dA_time(time_step,nunit)=alv_dA(nu_vol,nunit)
 
@@ -604,7 +627,7 @@ contains
     do nunit = 1,num_units
        ne = units(nunit)
        np2 = elem_nodes(2,ne)
-       ppl_current = ppl_current - unit_field(nu_pe,nunit) + &
+       ppl_current = ppl_current - unit_field(nu_pe,nunit) - alv_collapse_pressure(nu_vol,nunit) + &
             node_field(nj_aw_press,np2)
     enddo !noelem
     ppl_current = ppl_current/num_units
@@ -730,14 +753,6 @@ contains
 
     real(dp),intent(in) :: dt
 
-!    real(dp), parameter :: gamma_star = 0.3e-6_dp !
-!    real(dp), parameter :: gamma_max = 0.345e-6_dp !
-!    real(dp), parameter :: bulk_c = 1e-3_dp ! bulk concentration  g/ml
-!    real(dp), parameter :: k_a = 10.0_dp**4 !6*10**5 ! adsorption coefficient  ml/(g*sec)
-!    real(dp), parameter :: k_d = k_a/(1.2_dp*(10.0_dp**5)) !desorption coefficient sec^(-1)
-!    real(dp), parameter :: surface_tension_hat = 22.02_dp !dyn/cm
-!    real(dp), parameter :: m2 = 140.0_dp !slope
-
     ! Local variables
     integer :: ne,np,nunit,time_step_curr!,nalv
 
@@ -750,16 +765,6 @@ contains
     sub_name = 'update_unit_volume'
     call enter_exit(sub_name,1)
 
-    !allocate( alv_unit_field(nu_vol,num_units))
-    !allocate( alv_radii(nu_vol,num_units))
-    !allocate( alv_area(nu_vol,num_units))
-    !alv_unit_field=0.0_dp
-    !alv_radii=0.0_dp
-    !alv_area=0.0_dp
-
-!    allocate( surface_tension(nu_vol,num_units))
-
-    !alv_dA=0.0_dp
 
     do nunit = 1,num_units
        ne = units(nunit)
@@ -772,10 +777,6 @@ contains
 
        ! collect the volume of the lumped tissue unit for previous time step
        unit_field_pre(nu_vol,nunit)=unit_field(nu_vol,nunit)
-       alv_field_pre(nu_vol,nunit)= unit_field(nu_vol,nunit)/22000!in mm^3
-       alv_radii_pre(nu_vol,nunit) = (3.0_dp * alv_field_pre(nu_vol,nunit) / (4.0_dp * PI)) ** (1.0_dp / 3.0_dp)
-
-       alv_area_pre(nu_vol,nunit)=4.0_dp * pi * (alv_radii_pre(nu_vol,nunit)**2.0_dp)
 
        ! update the volume of the lumped tissue unit
        unit_field(nu_vol,nunit) = unit_field(nu_vol,nunit)+dt* &
@@ -783,22 +784,6 @@ contains
 
        ! collect the volume of the lumped tissue unit for current time step
        unit_field_current(nu_vol,nunit)=unit_field(nu_vol,nunit)
-       alv_field_current(nu_vol,nunit)= unit_field(nu_vol,nunit)/22000
-       alv_radii_current(nu_vol,nunit) = (3.0_dp * alv_field_current(nu_vol,nunit) / (4.0_dp * PI)) ** (1.0_dp / 3.0_dp)
-
-       alv_area_current(nu_vol,nunit)=4.0_dp * pi * (alv_radii_current(nu_vol,nunit)**2.0_dp)
-
-       !if (time_step_curr .gt. 0) then
-        ! Calculate dA
-       alv_dA(nu_vol,nunit)=(alv_area_pre(nu_vol,nunit)-alv_area_current(nu_vol,nunit))/dt
-       !call evaluate_surf
-       call update_surfactant_concentration(alv_area_pre, alv_dA, surf_concentration,nunit)
-       call update_surface_tension(surf_concentration, surface_tension,nunit)
-       alv_collapse_pressure(nu_vol,nunit)= (2.0 *surface_tension(nu_vol,nunit)) /alv_radii_pre(nu_vol,nunit)
-       !call alv_collapse_pressure(alv_radii, surface_tension,nunit)
-       !endif
-
-
 
        !print*,'after',unit_field(nu_vol,nunit)
        if(elem_field(ne_Vdot,1).gt.0.0_dp)then  !only store inspired volume
@@ -806,76 +791,13 @@ contains
                elem_field(ne_Vdot,ne)
        endif
 
-
-
-!       surf_concentration(nu_vol,1) = gamma_star/2
-!       if (surf_concentration(nu_vol,nunit) .le. gamma_star) then
-!         surf_concentration(nu_vol,nunit)=surf_concentration(nu_vol,nunit)+dt*(k_a*bulk_c &
-!          *(gamma_star-surf_concentration(nu_vol,nunit))-k_d*surf_concentration(nu_vol,nunit) &
-!                -(surf_concentration(nu_vol,nunit)/alv_area_pre(nu_vol,nunit))*alv_dA(nu_vol,nunit))
-!
-!       elseif ((surf_concentration(nu_vol,nunit) .ge. gamma_max) .and. (alv_dA(nu_vol,nunit) .lt. 0.0)) then
-!         surf_concentration(nu_vol,nunit)=gamma_max
-!       else
-!         surf_concentration(nu_vol,nunit)=surf_concentration(nu_vol,nunit)+ &
-!                dt*((-surf_concentration(nu_vol,nunit)/alv_area_pre(nu_vol,nunit))*alv_dA(nu_vol,nunit))
-!
-!       end if
-!
-!
-!       if (surf_concentration(nu_vol,nunit) .le. gamma_star) then
-!         surface_tension(nu_vol,nunit)=(surface_tension_hat-70)*(surf_concentration(nu_vol,nunit)/gamma_star)+70
-!
-!       elseif ((surf_concentration(nu_vol,nunit) .ge. gamma_max)) then!.and. (dA(i) .lt. 0.0)) then
-!         surface_tension(nu_vol,nunit)=-m2*(gamma_max/gamma_star)+(m2+surface_tension_hat)
-!
-!       else
-!         surface_tension(nu_vol,nunit)=-m2*(surf_concentration(nu_vol,nunit)/gamma_star)+(m2+surface_tension_hat)
-!       end if
-!        call evaluate_surf
     enddo !nunit
-    print*,'alv_area_pre',alv_area_pre(nu_vol,1)
-
-!    call update_surfactant_concentration(alv_area_pre, alv_dA, surf_concentration)
 
 
-    ! update the volume of the alveolus
-    !print*, 'alveolar volume', unit_field(nu_vol,nunit)/10000.00_dp
-    !alv_unit_field(nu_vol,num_units)=0.0_dp
-
-    ! update the volume of the alveolus
-    ! update the radius of the alveolus
-    !do nalv = 1,num_units
-       !ne = units(nalv)
-       !np = elem_nodes(2,ne)
-       ! update the volume of the lumped tissue unit
-    !   alv_unit_field(nu_vol,nalv)= unit_field(nu_vol,nalv)/20000 !in mm^3
-    !   alv_radii(nu_vol,nalv) = (3.0_dp * alv_unit_field(nu_vol,nalv) / (4.0_dp * PI)) ** (1.0_dp / 3.0_dp)
-
-    !   alv_area(nu_vol,nalv)=4.0_dp * pi * (alv_radii(nu_vol,nalv)**2.0_dp)
-       !print*,'volume',alv_unit_field(nu_vol,1)
-    !enddo
-    !print*, 'alveolar', alv_unit_field(nu_vol,1)
-    !print*, 'alveolar radii', alv_radii(nu_vol,1)
-    !print*, 'alveolar area', alv_area(nu_vol,1)
-    !print*,'pre',unit_field_pre(nu_vol,1)
-    !print*,'alv_pre',alv_field_pre(nu_vol,1)
-    !print*,'alv_radii_pre',alv_radii_pre(nu_vol,1)
-    !print*,'alv_area_pre',alv_area_pre(nu_vol,1)
-    !print*,'alv_pre',alv_field_pre(nu_vol,1)
+    print*,'unit_pre',unit_field_pre(nu_vol,1)
+    print*,'unit_current',unit_field_current(nu_vol,1)
 
 
-    !print*,'after',unit_field_current(nu_vol,1)
-    !print*,'alv_after',alv_field_current(nu_vol,1)
-    !print*,'alv_radii_after',alv_radii_current(nu_vol,1)
-    !print*,'alv_area_after',alv_area_current(nu_vol,1)
-    print*,'dA',alv_dA(nu_vol,1)
-    print*,'surf_concentration',surf_concentration(nu_vol,1)
-    print*,'surface tension',surface_tension(nu_vol,1)
-
-
-
-    !deallocate(alv_unit_field)
     call enter_exit(sub_name,2)
 
   end subroutine update_unit_volume
@@ -883,30 +805,47 @@ contains
 !!!#############################################################################
 !!!#############################################################################
 
-!  subroutine update_alveolar_info(dt,time)
-!
-!
+  subroutine update_alveolar_info(dt,alv_area_current, alv_dA)
+
+
 !    real(dp), dimension(:,:), allocatable :: alv_unit_field
+!    real(dp), dimension(:,:), allocatable :: alv_unit_field_pre
+!    real(dp), dimension(:,:), allocatable :: alv_unit_field_current
+!    real(dp), dimension(:,:), allocatable :: alv_collapse_pressure
 !    real(dp), dimension(:,:), allocatable :: alv_radii
-!    real(dp), dimension(:,:), allocatable :: alv_area
-!    real(dp), dimension(:,:), allocatable :: alv_dA
+    real(dp), dimension(:,:), intent(out) :: alv_area_current
+    real(dp), dimension(:,:), intent(out) :: alv_dA
 !    real(dp), dimension(:,:), allocatable :: alv_area_over_breath
 !
 !    real(dp), dimension(:,:), allocatable :: unit_field_pre
 !    real(dp), dimension(:,:), allocatable :: unit_field_current
+
+    real(dp),intent(in) :: dt!,time, surf_concentration
+
+!    real(dp), parameter :: gamma_star = 0.3e-6_dp !
+!    real(dp), parameter :: gamma_max = 0.345e-6_dp !
+!    real(dp), parameter :: bulk_c = 10e-3_dp ! bulk concentration  g/ml
+!    real(dp), parameter :: k_a = 10.0_dp**4 !6*10**5 ! adsorption coefficient  ml/(g*sec)
+!    real(dp), parameter :: k_d = k_a/(1.2_dp*(10.0_dp**5)) !desorption coefficient sec^(-1)
 !
-!    real(dp),intent(in) :: dt,time
-!
-!    integer :: nalv,num_time,ntime
-!
-!    character(len=60) :: sub_name
-!
-!     --------------------------------------------------------------------------
-!
-!    sub_name = 'update_alveolar_info'
-!    call enter_exit(sub_name,1)
-!
+!    real(dp), parameter :: surface_tension_hat = 22.02_dp !dyn/cm
+!    real(dp), parameter :: m2 = 140.0_dp !slope
+
+    integer :: ne,nalv,num_time,ntime
+
+    character(len=60) :: sub_name
+
+  !--------------------------------------------------------------------------
+
+    sub_name = 'update_alveolar_info'
+    call enter_exit(sub_name,1)
+
 !    allocate( alv_unit_field(nu_vol,num_units))
+!    allocate( alv_unit_field_pre(nu_vol,num_units))
+!    allocate( alv_unit_field_current(nu_vol,num_units))
+!!    allocate( alv_area_current(nu_vol,num_units))
+!    allocate( alv_dA(nu_vol,num_units))
+!    allocate( surf_concentration(nu_vol,num_units))
 !    allocate( unit_field_pre(nu_vol,num_units))
 !    allocate( unit_field_current(nu_vol,num_units))
 !    allocate( alv_radii(nu_vol,num_units))
@@ -914,17 +853,76 @@ contains
 !    allocate( alv_area_over_breath(num_time,num_units))
 !
 !    allocate( alv_dA(nu_vol,num_units))
-!
-!    alv_unit_field=0.0_dp
+
+    !alv_unit_field=unit_field
 !    alv_radii=0.0_dp
 !    alv_area=0.0_dp
 !    alv_dA=0.0_dp
 !    num_time=0
-!
-!    do nalv = 1,num_units
+    !surf_concentration= gamma_star/2.0_dp
+
+    do nalv = 1,num_units
+        !ne = units(nalv)
+        !np = elem_nodes(2,ne)
 !       print*,'pre_alv', alv_unit_field(nu_vol,nalv)
-!       unit_field_pre(nu_vol,nalv)=unit_field(nu_vol,nalv)
-!       print*,'pre',unit_field_pre(nu_vol,nalv)
+        alv_unit_field_pre(nu_vol,nalv)=unit_field_pre(nu_vol,nalv)/26000000
+
+        alv_radii_pre(nu_vol,nalv) = ((3.0_dp * alv_unit_field_pre(nu_vol,nalv)) / (4.0_dp * PI)) ** (1.0_dp / 3.0_dp)
+
+        alv_area_pre(nu_vol,nalv)=4.0_dp * pi * (alv_radii_pre(nu_vol,nalv)**2.0_dp)
+
+
+        !alv_unit_field(nu_vol,nalv) = unit_field(nu_vol,nalv)
+
+        alv_unit_field_current(nu_vol,nalv)=unit_field_current(nu_vol,nalv)/26000000
+
+        alv_radii_current(nu_vol,nalv) = ((3.0_dp * alv_unit_field_current(nu_vol,nalv)) / (4.0_dp * PI)) ** (1.0_dp / 3.0_dp)
+
+        alv_area_current(nu_vol,nalv)=4.0_dp * pi * (alv_radii_current(nu_vol,nalv)**2.0_dp)
+
+!        if (time == 0.0_dp ) then
+!        if(abs(time).lt.zero_tol)then
+!            alv_dA(nu_vol,nalv)=0.0_dp
+
+!        else
+        alv_dA(nu_vol,nalv)=(alv_area_current(nu_vol,nalv)-alv_area_pre(nu_vol,nalv))/dt
+
+!        end if
+
+!      if (surf_concentration(nu_vol,nalv) .le. gamma_star) then
+!        surf_concentration(nu_vol,nalv)=surf_concentration(nu_vol,nalv)+dt*(k_a*bulk_c &
+!          *(gamma_star-surf_concentration(nu_vol,nalv))-k_d*surf_concentration(nu_vol,nalv) &
+!                -(surf_concentration(nu_vol,nalv)/alv_area_current(nu_vol,nalv))*alv_dA(nu_vol,nalv))
+!
+!      elseif ((surf_concentration(nu_vol,nalv) .ge. gamma_max) .and. (alv_dA(nu_vol,nalv) .lt. 0.0)) then
+!        surf_concentration(nu_vol,nalv)=gamma_max
+!
+!      else
+!        surf_concentration(nu_vol,nalv)=surf_concentration(nu_vol,nalv)+ &
+!                dt*((-surf_concentration(nu_vol,nalv)/alv_area_current(nu_vol,nalv))*alv_dA(nu_vol,nalv))
+!
+!      end if
+!
+!      if (surf_concentration(nu_vol,nalv) .le. gamma_star) then
+!        surface_tension(nu_vol,nalv)=(surface_tension_hat-70)*(surf_concentration(nu_vol,nalv)/gamma_star)+70
+!
+!      elseif ((surf_concentration(nu_vol,nalv) .ge. gamma_max)) then!.and. (dA(i) .lt. 0.0)) then
+!        surface_tension(nu_vol,nalv)=-m2*(gamma_max/gamma_star)+(m2+surface_tension_hat)
+!
+!      else
+!        surface_tension(nu_vol,nalv)=-m2*(surf_concentration(nu_vol,nalv)/gamma_star)+(m2+surface_tension_hat)
+!      end if
+!
+!
+!
+!
+!      alv_collapse_pressure(nu_vol,nalv)= ((2.0 *surface_tension(nu_vol,nalv)) /alv_radii_current(nu_vol,nalv))/10.0
+
+
+!        call update_surfactant_concentration(alv_area_current, alv_dA, surf_concentration)
+!        call update_surface_tension(surf_concentration, surface_tension)
+        !alv_collapse_pressure(nu_vol,nalv)= (2.0 *surface_tension(nu_vol,nalv)) /alv_radii_pre(nu_vol,nalv)
+!       print*,'pre',alv_unit_field(nu_vol,nalv)
 !       unit_field(nu_vol,nalv)= unit_field(nu_vol,nalv)!in mm^3
 !       unit_field_current(nu_vol,nalv)=unit_field(nu_vol,nalv)
 !       print*,'cur',unit_field_current(nu_vol,nalv)
@@ -937,7 +935,7 @@ contains
 !       num_time=num_time+1
 !            num_time=int(time/dt)
 !       alv_area_over_breath(num_time,num_units)=alv_area(nu_vol,num_units)
-!    enddo
+    enddo
 !
 !     num_time=int(time /dt)
 !     do ntime=1,num_time
@@ -945,7 +943,9 @@ contains
 !         alv_area_over_breath(ntime,num_units)=alv_area(nu_vol,num_units)
 !     end do
 !
-!
+!    call update_surfactant_concentration(alv_area_current, alv_dA, surf_concentration)
+!    call update_surface_tension(surf_concentration, surface_tension,nalv)
+!    alv_collapse_pressure(nu_vol,nalv)= (2.0 *surface_tension(nu_vol,nalv)) /alv_radii_pre(nu_vol,nalv)
 !    num_time=int(time /dt)
 !   do ntime = 1, num_time
 !      alv_area_over_breath(num_time,num_units)=alv_area(nu_vol,num_units)
@@ -953,23 +953,33 @@ contains
 !    do nalv = 2, nu_vol
 !    alv_dA(nu_vol,1:num_units-1)=(alv_area(nu_vol,2:num_units)-alv_area(nu_vol,1:num_units-1))/dt;
 !    end do
+
+
+!    print*, 'alveolar', alv_unit_field_pre(nu_vol,1)
+!    !print*, 'alveolar', alv_unit_field(nu_vol,1)
+!    print*, 'alveolar', alv_unit_field_current(nu_vol,1)
 !
+!    print*, 'alveolar radii', alv_radii_pre(nu_vol,1)
+!    print*, 'alveolar radii', alv_radii_current(nu_vol,1)
 !
-!    print*, 'alveolar', alv_unit_field(nu_vol,1)
-!    print*, 'alveolar radii', alv_radii(nu_vol,1)
-!    print*, 'alveolar area', alv_area(nu_vol,1)
+!    print*, 'alveolar area', alv_area_pre(nu_vol,1)
+!    print*, 'alveolar area', alv_area_current(nu_vol,1)
+!
 !    print*, 'alveolar dA', alv_dA(nu_vol,1)
-!    print*, 'size', alv_area(1,1)
-!    print*, 'row', nu_vol
-!    print*, 'column', num_units
-!    do alv = 1, num_unit
-!    print *, alv_area_over_breath(:,1)
-!    end do
-!    print*, 'alveolar', alv_area_over_breath(num_time,1)
-!    print*, 'ntime', num_time
+!    print*,'surf_concentration',surf_concentration(nu_vol,1)
+!    print*,'surface tension',surface_tension(nu_vol,1)
+!    print*,'pressure',alv_collapse_pressure(nu_vol,1)
+!!    print*, 'size', alv_area(1,1)
+!!    print*, 'row', nu_vol
+!!    print*, 'column', num_units
+!!    do alv = 1, num_unit
+!!    print *, alv_area_over_breath(:,1)
+!!    end do
+!!    print*, 'alveolar', alv_area_over_breath(num_time,1)
+!    print*, 'ntime', time
 !    print '("At alv_unit_field = ", F8.4)', alv_unit_field(nu_vol,1)
-!
-!
+
+
 !    if(abs(time).lt.zero_tol)then
 !!! write out the header information for run-time output
 !       write(*,'(2X,''Time'',3X,''avol1'')')
@@ -991,12 +1001,13 @@ contains
 !            alv_area_over_breath(num_time,1)
 !            alv_dA(nu_vol,1)
 !    endif
-!
-!
+
+
 !    deallocate(alv_unit_field)
-!    call enter_exit(sub_name,2)
-!
-!  end subroutine update_alveolar_info
+
+    call enter_exit(sub_name,2)
+
+  end subroutine update_alveolar_info
 
 !!!#############################################################################
 !!!#############################################################################
@@ -1574,7 +1585,7 @@ contains
             !alv_unit_field(nu_vol,1), &
             !alv_radii(nu_vol,1), &
             !alv_area(nu_vol,1), &
-            !alv_dA(nu_vol,1)!,&
+            !0.0_dp!alv_dA(nu_vol,1)!,&
             !unit_field_pre(nu_vol,1),&
             !unit_field_current(nu_vol,1)
     else
