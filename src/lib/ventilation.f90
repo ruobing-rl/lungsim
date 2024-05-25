@@ -823,33 +823,6 @@ contains
 
 
 
-!      if (surf_concentration(nu_vol,nalv) .le. gamma_star) then
-!        surf_concentration(nu_vol,nalv)=surf_concentration(nu_vol,nalv)+dt*(k_a*bulk_c &
-!          *(gamma_star-surf_concentration(nu_vol,nalv))-k_d*surf_concentration(nu_vol,nalv) &
-!                -(surf_concentration(nu_vol,nalv)/alv_area_current(nu_vol,nalv))*alv_dA(nu_vol,nalv))
-!
-!      elseif ((surf_concentration(nu_vol,nalv) .ge. gamma_max) .and. (alv_dA(nu_vol,nalv) .lt. 0.0)) then
-!        surf_concentration(nu_vol,nalv)=gamma_max
-!
-!      else
-!        surf_concentration(nu_vol,nalv)=surf_concentration(nu_vol,nalv)+ &
-!                dt*((-surf_concentration(nu_vol,nalv)/alv_area_current(nu_vol,nalv))*alv_dA(nu_vol,nalv))
-!
-!      end if
-!
-!      if (surf_concentration(nu_vol,nalv) .le. gamma_star) then
-!        surface_tension(nu_vol,nalv)=(surface_tension_hat-70)*(surf_concentration(nu_vol,nalv)/gamma_star)+70
-!
-!      elseif ((surf_concentration(nu_vol,nalv) .ge. gamma_max)) then!.and. (dA(i) .lt. 0.0)) then
-!        surface_tension(nu_vol,nalv)=-m2*(gamma_max/gamma_star)+(m2+surface_tension_hat)
-!
-!      else
-!        surface_tension(nu_vol,nalv)=-m2*(surf_concentration(nu_vol,nalv)/gamma_star)+(m2+surface_tension_hat)
-!      end if
-!
-!
-!
-!
 !      alv_collapse_pressure(nu_vol,nalv)= ((2.0 *surface_tension(nu_vol,nalv)) /alv_radii_current(nu_vol,nalv))/10.0
 
 

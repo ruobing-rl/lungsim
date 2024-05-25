@@ -1,16 +1,21 @@
 #include "surfactant.h"
 
-//void update_surface_tension_c(double *surf_concentration, double *surface_tension);
-
-//void update_surface_tension(double surf_concentration, double surface_tension)
-//{
-//  update_surface_tension_c(&surf_concentration, &surface_tension);
-//}
 
 void evaluate_surf_c ();
-//(int *num_steps, double *dt, double *t, double *volumes, double *radii, double *area, double *dA, double *surf_concentration, double *surface_tension)
-void evaluate_surf ()//(int num_steps, double dt, double t, double volumes, double radii, double area, double dA, double surf_concentration, double surface_tension)
+void evaluate_surf ()
 {
   evaluate_surf_c ();
-  //(&num_steps, &dt, &t, &volumes, &radii, &area, &dA, &surf_concentration, &surface_tension)
+}
+
+void update_surfactant_concentration_c (double *dt, double *alv_area_current, double *alv_dA, double *surf_concentration);
+void update_surfactant_concentration (double dt, double alv_area_current, double alv_dA, double surf_concentration)
+{
+   update_surfactant_concentration_c (&dt, &alv_area_current, &alv_dA, &surf_concentration);
+}
+
+
+void update_surface_tension_c (double *surf_concentration, double *surface_tension,double *alv_radii_current,double *alv_collapse_pressure );
+void update_surface_tension (double surf_concentration, double surface_tension,double alv_radii_current,double alv_collapse_pressure )
+{
+   update_surface_tension_c (&surf_concentration, &surface_tension, &alv_radii_current, &alv_collapse_pressure );
 }

@@ -305,7 +305,7 @@ subroutine evaluate_surf !(num_steps, dt, t, volumes, radii, area, dA, surf_conc
 
 
 
-    print*,'surface tension2',surface_tension(nu_vol,1)
+!    print*,'surface tension2',surface_tension(nu_vol,1)
 
     call enter_exit(sub_name,2)
 
