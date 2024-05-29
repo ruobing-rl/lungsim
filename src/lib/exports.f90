@@ -15,6 +15,8 @@ module exports
   use diagnostics
   use indices
   use other_consts
+  use ventilation
+
   
   implicit none
  
@@ -771,13 +773,15 @@ contains
 !
 
   subroutine export_terminal_solution(EXNODEFILE, name)
+      !use ventilation,only: surf_concentration
 
 !!! Parameters
     character(len=MAX_FILENAME_LEN),intent(in) :: EXNODEFILE
     character(len=MAX_STRING_LEN),intent(in) :: name
 
 !!! Local Variables
-    integer :: len_end,ne,nj,NOLIST,np,np_last,VALUE_INDEX
+    !real(dp), dimension(:,:), allocatable :: surf_concentration
+    integer :: len_end,ne,nj,NOLIST,np,np_last,VALUE_INDEX!,nalv
     character(len=300) :: writefile
     logical :: FIRST_NODE
 
@@ -813,7 +817,7 @@ contains
                 VALUE_INDEX=VALUE_INDEX+1
              enddo
              !Ventilation (tidal volume/insp time)
-             write(10,'('' 2) flow, field, rectangular cartesian, #Components=1'')')
+             write(10,'('' 4) flow, field, rectangular cartesian, #Components=1'')')
              write(10,'(2X,''1.  '')',advance="no")
              write(10,'(''Value index='',I1,'', #Derivatives='',I1)',advance="yes") VALUE_INDEX,0
              !VALUE_INDEX=VALUE_INDEX+1
@@ -840,6 +844,16 @@ contains
              write(10,'('' 7) tidal volume, field, rectangular cartesian, #Components=1'')')
              write(10,'(2X,''1.  '')',advance="no")
              write(10,'(''Value index='',I1,'', #Derivatives='',I1)',advance="yes") VALUE_INDEX,0
+             !surfactant concentration
+             write(10,'('' 8) surfactant concentration, field, rectangular cartesian, #Components=1'')')
+             write(10,'(2X,''1.  '')',advance="no")
+             write(10,'(''Value index='',I1,'', #Derivatives='',I1)',advance="yes") VALUE_INDEX,0
+             VALUE_INDEX=VALUE_INDEX+1
+             !Collapse Pressure
+             write(10,'('' 9) Collapse Pressure, field, rectangular cartesian, #Components=1'')')
+             write(10,'(2X,''1.  '')',advance="no")
+             write(10,'(''Value index='',I1,'', #Derivatives='',I1)',advance="yes") VALUE_INDEX,0
+             VALUE_INDEX=VALUE_INDEX+1
           endif !FIRST_NODE
           !***      write the node
           write(10,'(1X,''Node: '',I12)') np
@@ -847,11 +861,13 @@ contains
              write(10,'(2X,4(1X,F12.6))') (node_xyz(nj,np))      !Coordinates
           enddo !njj2
           write(10,'(2X,4(1X,F12.6))') (unit_field(nu_vent,NOLIST)) !Ventilation
-          !write(10,'(2X,4(1X,F12.6))') (unit_field(nu_vol,nolist))   !Volume (end expiration)
-          !write(10,'(2X,4(1X,F12.6))') (unit_field(nu_press,nolist)) !Pressure
-          write(10,'(2X,4(1X,F12.6))') (unit_field(nu_comp,nolist))  !Compliance (end exp)
+          write(10,'(2X,4(1X,F12.6))') (unit_field(nu_vol,nolist))   !Volume (end expiration)
+!          write(10,'(2X,4(1X,F12.6))') (unit_field(nu_press,nolist)) !Pressure
+!          write(10,'(2X,4(1X,F12.6))') (unit_field(nu_comp,nolist))  !Compliance (end exp)
           write(10,'(2X,4(1X,F12.6))') (unit_field(nu_pe,nolist))    !Recoil pressure
           write(10,'(2X,4(1X,F12.6))') (unit_field(nu_vt,nolist))    !Tidal volume
+          write(10,'(2X,4(1X,F13.11))') (surf_concentration(nu_vol,nolist))    !surfactant concentration
+          write(10,'(2X,4(1X,F12.6))') (alv_collapse_pressure(nu_vol,nolist))    !Collapse Pressure
           FIRST_NODE=.FALSE.
           np_last=np
        enddo !nolist (np)
