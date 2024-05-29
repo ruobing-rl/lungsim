@@ -8,9 +8,8 @@ module surfactant
 !
 !*Full Description:*
 !This module handles all code specific to simulating surfactant in the acinus.
-  
 
-  use ventilation
+!  use ventilation
 !  use geometry
   use precision
   use diagnostics
@@ -57,6 +56,7 @@ module surfactant
   public evaluate_surf
   public update_surfactant_concentration
   public update_surface_tension
+
 !  public alv_collapse_pressure
 
 contains
@@ -135,12 +135,12 @@ subroutine evaluate_surf !(num_steps, dt, t, volumes, radii, area, dA, surf_conc
 
 
 
-      deallocate(alv_area_current)
-      deallocate(alv_dA)
-      deallocate(alv_radii_current)
-      deallocate(alv_collapse_pressure)
-      deallocate(surf_concentration)
-      deallocate(surface_tension)
+!      deallocate(alv_area_current)
+!      deallocate(alv_dA)
+!      deallocate(alv_radii_current)
+!      deallocate(alv_collapse_pressure)
+!      deallocate(surf_concentration)
+!      deallocate(surface_tension)
 
     call enter_exit(sub_name,2)
 
@@ -212,7 +212,7 @@ subroutine evaluate_surf !(num_steps, dt, t, volumes, radii, area, dA, surf_conc
 
     real(dp), parameter :: gamma_star = 0.3e-6_dp !
     real(dp), parameter :: gamma_max = 0.345e-6_dp !
-    real(dp), parameter :: bulk_c = 1e-3_dp ! bulk concentration  g/ml
+    real(dp), parameter :: bulk_c = 10e-3_dp ! bulk concentration  g/ml
     real(dp), parameter :: k_a = 10.0_dp**4 !6*10**5 ! adsorption coefficient  ml/(g*sec)
     real(dp), parameter :: k_d = k_a/(1.2_dp*(10.0_dp**5)) !desorption coefficient sec^(-1)
 !    real(dp), parameter :: surf_concentration= gamma_star/2.0_dp
@@ -298,7 +298,7 @@ subroutine evaluate_surf !(num_steps, dt, t, volumes, radii, area, dA, surf_conc
       end if
 
 
-      alv_collapse_pressure(nu_vol,nalv)= ((2.0 *surface_tension(nu_vol,nalv)) /alv_radii_current(nu_vol,nalv))/10.0
+      alv_collapse_pressure(nu_vol,nalv)= ((2.0 *surface_tension(nu_vol,nalv)) /alv_radii_current(nu_vol,nalv))!/10.0
 
     end do
 
