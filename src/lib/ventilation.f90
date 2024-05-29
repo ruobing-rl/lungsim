@@ -42,7 +42,8 @@ module ventilation
   !Module types
 
   !Module variables
-
+  public surf_concentration
+  public alv_collapse_pressure
   !Interfaces
   private
   public evaluate_vent
@@ -292,8 +293,8 @@ contains
 !    deallocate( alv_radii_pre)
 !    deallocate( alv_radii_current)
 !    deallocate( alv_area_pre)
-    deallocate( alv_area_current)
-    deallocate( alv_dA)
+!    deallocate( alv_area_current)
+!    deallocate( alv_dA)
 !    deallocate(surf_concentration)
 !    deallocate(surface_tension)
 !    deallocate(alv_collapse_pressure)
@@ -391,6 +392,7 @@ contains
 
 
     call update_surfactant_concentration(dt, alv_area_current, alv_dA, surf_concentration)
+
 
     call update_surface_tension(surf_concentration, surface_tension, alv_radii_current, alv_collapse_pressure)
 
@@ -604,11 +606,16 @@ contains
     do nunit = 1,num_units
        ne = units(nunit)
        np2 = elem_nodes(2,ne)
+!       ppl_current = ppl_current - unit_field(nu_pe,nunit) + &
+!            node_field(nj_aw_press,np2)
+
        ppl_current = ppl_current - unit_field(nu_pe,nunit) - alv_collapse_pressure(nu_vol,nunit) + &
             node_field(nj_aw_press,np2)
     enddo !noelem
+!    print*,'ppl pressure',ppl_current
     ppl_current = ppl_current/num_units
-
+!    print*,'ppl pressure',ppl_current
+!    print*,'alveolar pressure',node_field(nj_aw_press,np2)
 
     call enter_exit(sub_name,2)
 
@@ -644,6 +651,7 @@ contains
             - (elem_field(ne_resist,ne)*elem_field(ne_Vdot,ne))* &
             dble(elem_ordrs(no_type,ne))
     enddo !noelem
+!    print*,'number',np2
 
     call enter_exit(sub_name,2)
 
@@ -657,7 +665,7 @@ contains
     real(dp), intent(in) :: chest_wall_compliance,undef
     ! Local variables
     integer :: ne,nunit
-    real(dp),parameter :: a = 0.433_dp, b = -0.611_dp, cc = 2500.0_dp
+    real(dp),parameter :: a = 0.433_dp, b = -0.611_dp, cc = 450.0_dp !2500.0_dp
     real(dp) :: exp_term,lambda,ratio
     character(len=60) :: sub_name
 
@@ -1367,7 +1375,7 @@ contains
     !real(dp), dimension(:,:), allocatable :: alv_unit_field
     !real(dp), dimension(:,:), allocatable :: alv_radii
     !real(dp), dimension(:,:), allocatable :: alv_area
-    real(dp), dimension(:,:), allocatable :: alv_dA
+!    real(dp), dimension(:,:), allocatable :: alv_dA
     !real(dp), dimension(:,:), allocatable :: unit_field_pre
     !real(dp), dimension(:,:), allocatable :: unit_field_current
 
@@ -1394,13 +1402,13 @@ contains
 !!! write out the header information for run-time output
        write(*,'(2X,''Time'',3X,''Inflow'',4X,''V_t'',5X,''Raw'',5X,&
             &''Comp'',4X,''Ppl'',5X,''Ptp'',5X,''VolL'',4X,''Pmus'',&
-            &4X,''Pcw'',2X,''Pmus-Pcw'',3X,''vol1'',3X,''avol1'',3X, &
+            &4X,''Pcw'',2X,''Pmus-Pcw'',4X,''Sur_con'',4X,''Pc'',3X, &
             &''aarea1'',3X,''arad1'',3X,''adA1'')')
        write(*,'(3X,''(s)'',4X,''(mL/s)'',3X,''(mL)'',1X,''(cmH/L.s)'',&
             &1X,''(L/cmH)'',1X,''(...cmH2O...)'',&
             &4X,''(L)'',5X,''(......cmH2O.......)'')')
        
-       write(*,'(F7.3,2(F8.1),8(F8.2),8(F15.4),9(F15.12))') &
+       write(*,'(F7.3,2(F8.1),8(F9.2),8(F13.9),9(F13.9))') &
             0.0_dp,0.0_dp,0.0_dp, &  !time, flow, tidal
             elem_field(ne_t_resist,1)*1.0e+6_dp/98.0665_dp, & !res (cmH2O/L.s)
             totalC*98.0665_dp/1.0e+6_dp, & !total model compliance
@@ -1409,7 +1417,10 @@ contains
             init_vol/1.0e+6_dp, & !total model volume (L)
             0.0_dp, & !Pmuscle (cmH2O)
             Pcw/98.0665_dp, & !Pchest_wall (cmH2O)
-            (-Pcw)/98.0665_dp!, & !Pmuscle - Pchest_wall (cmH2O)
+            (-Pcw)/98.0665_dp, & !Pmuscle - Pchest_wall (cmH2O)
+            alv_unit_field_current(nu_vol,1), &
+            surf_concentration(nu_vol,1),&
+            alv_collapse_pressure(nu_vol,1)/98.0665_dp
             !unit_field(nu_vol,1)!, &
             !alv_unit_field(nu_vol,1), &
             !alv_radii(nu_vol,1), &
@@ -1418,7 +1429,7 @@ contains
             !unit_field_pre(nu_vol,1),&
             !unit_field_current(nu_vol,1)
     else
-       write(*,'(F7.3,2(F8.1),8(F8.2),8(F15.4),9(F15.12))') &
+       write(*,'(F7.3,2(F8.1),8(F9.2),8(F13.9),9(F13.9))') &
             time, & !time through breath (s)
             elem_field(ne_Vdot,1)/1.0e+3_dp, & !flow at the inlet (mL/s)
             (current_vol - init_vol)/1.0e+3_dp, & !current tidal volume (mL)
@@ -1429,9 +1440,12 @@ contains
             current_vol/1.0e+6_dp, & !total model volume (L)
             p_mus/98.0665_dp, & !Pmuscle (cmH2O)
             -Pcw/98.0665_dp, & !Pchest_wall (cmH2O)
-            (p_mus+Pcw)/98.0665_dp!, & !Pmuscle - Pchest_wall (cmH2O)
+            (p_mus+Pcw)/98.0665_dp, & !Pmuscle - Pchest_wall (cmH2O)
+            alv_unit_field_current(nu_vol,1), &
+            surf_concentration(nu_vol,1), &
+            alv_collapse_pressure(nu_vol,1)/98.0665_dp
             !unit_field(nu_vol,1)!, &
-            !alv_unit_field(nu_vol,1), &
+
             !alv_radii(nu_vol,1), &
             !alv_area(nu_vol,1), &
             !alv_dA(nu_vol,1)!,&
