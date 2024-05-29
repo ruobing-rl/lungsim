@@ -867,7 +867,7 @@ contains
           write(10,'(2X,4(1X,F12.6))') (unit_field(nu_pe,nolist))    !Recoil pressure
           write(10,'(2X,4(1X,F12.6))') (unit_field(nu_vt,nolist))    !Tidal volume
           write(10,'(2X,4(1X,F13.11))') (surf_concentration(nu_vol,nolist))    !surfactant concentration
-
+          write(10,'(2X,4(1X,F12.6))') (alv_collapse_pressure(nu_vol,nolist))    !Collapse Pressure
           FIRST_NODE=.FALSE.
           np_last=np
        enddo !nolist (np)
