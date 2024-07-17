@@ -12,7 +12,7 @@ module ventilation
   
   use arrays
   use diagnostics
-  use exports
+!  use exports
   use geometry
   use indices
   use other_consts
@@ -37,13 +37,18 @@ module ventilation
   real(dp), dimension(:,:), allocatable :: alv_dA
   real(dp), dimension(:,:), allocatable :: surf_concentration
   real(dp), dimension(:,:), allocatable :: surface_tension
-  real(dp), dimension(:,:), allocatable :: alv_collapse_pressure
+  real(dp), dimension(:,:), allocatable :: Pc
+  real(dp), dimension(:,:), allocatable :: Pc_com
+  real(dp), dimension(:,:), allocatable :: smoothed_Pc_com
+
+!  real(dp), dimension(:,:), allocatable :: Pc_current
 
   !Module types
 
   !Module variables
   public surf_concentration
-  public alv_collapse_pressure
+  public surface_tension
+  public Pc
   !Interfaces
   private
   public evaluate_vent
@@ -128,7 +133,9 @@ contains
     allocate( alv_dA(nu_vol,num_units))
     allocate( surf_concentration(nu_vol,num_units))
     allocate( surface_tension(nu_vol,num_units))
-    allocate( alv_collapse_pressure(nu_vol,num_units))
+    allocate( Pc(nu_vol,num_units))
+    allocate( Pc_com(nu_vol,num_units))
+    allocate( smoothed_Pc_com(nu_vol,num_units))
 
 !!! Initialise variables:
     pmus_factor_in = 1.0_dp
@@ -140,7 +147,7 @@ contains
     last_vol = 0.0_dp
     surf_concentration = 0.3e-6_dp/2.0_dp ! gamma*/2
     alv_dA=0.0_dp
-
+    Pc=0.0_dp
 !!! set default values for the parameters that control the breathing simulation
 !!! these should be controlled by user input (showing hard-coded for now)
 
@@ -394,8 +401,10 @@ contains
     call update_surfactant_concentration(dt, alv_area_current, alv_dA, surf_concentration)
 
 
-    call update_surface_tension(surf_concentration, surface_tension, alv_radii_current, alv_collapse_pressure)
+    call update_surface_tension(surf_concentration, surface_tension, alv_radii_current, Pc)
 
+    call update_Pc_compliance(unit_field_current, Pc, Pc_com, smoothed_Pc_com)
+!    print*, 'alveolar', Pc_com(nu_vol,1)
 !    print*, 'alveolar', alv_unit_field_pre(nu_vol,1)
 !    print*, 'alveolar', alv_unit_field_current(nu_vol,1)
 !    print*, 'alveolar radii', alv_radii_pre(nu_vol,1)
@@ -609,13 +618,13 @@ contains
 !       ppl_current = ppl_current - unit_field(nu_pe,nunit) + &
 !            node_field(nj_aw_press,np2)
 
-       ppl_current = ppl_current - unit_field(nu_pe,nunit) - alv_collapse_pressure(nu_vol,nunit) + &
+       ppl_current = ppl_current - unit_field(nu_pe,nunit) - Pc(nu_vol,nunit) + &
             node_field(nj_aw_press,np2)
     enddo !noelem
 !    print*,'ppl pressure',ppl_current
     ppl_current = ppl_current/num_units
 !    print*,'ppl pressure',ppl_current
-!    print*,'alveolar pressure',node_field(nj_aw_press,np2)
+!    print*,'alveolar pressure',node_field(nj_aw_press,1)
 
     call enter_exit(sub_name,2)
 
@@ -665,6 +674,7 @@ contains
     real(dp), intent(in) :: chest_wall_compliance,undef
     ! Local variables
     integer :: ne,nunit
+    integer :: nalv
     real(dp),parameter :: a = 0.433_dp, b = -0.611_dp, cc = 450.0_dp !2500.0_dp
     real(dp) :: exp_term,lambda,ratio
     character(len=60) :: sub_name
@@ -688,9 +698,13 @@ contains
             *(lambda**2-1.0_dp)**2/lambda**2+(3.0_dp*a+b) &
             *(lambda**2+1.0_dp)/lambda**4)
        unit_field(nu_comp,nunit) = undef/unit_field(nu_comp,nunit) ! V/P
+       Pc_com(nu_vol,nalv)=undef/Pc_com(nu_vol,nalv)
+       smoothed_Pc_com(nu_vol,nalv)=undef/smoothed_Pc_com(nu_vol,nalv)
+       unit_field(nu_comp,nunit) =1.0_dp/(1.0_dp/unit_field(nu_comp,nunit)&
+             +1.0_dp/smoothed_Pc_com(nu_vol,nalv)+1.0_dp/(chest_wall_compliance/dble(num_units)))
        ! add the chest wall (proportionately) in parallel
-       unit_field(nu_comp,nunit) = 1.0_dp/(1.0_dp/unit_field(nu_comp,nunit)&
-            +1.0_dp/(chest_wall_compliance/dble(num_units)))
+!       unit_field(nu_comp,nunit) = 1.0_dp/(1.0_dp/unit_field(nu_comp,nunit)&
+!            +1.0_dp/(chest_wall_compliance/dble(num_units)))
        !estimate an elastic recoil pressure for the unit
        unit_field(nu_pe,nunit) = cc/2.0_dp*(3.0_dp*a+b)*(lambda**2.0_dp &
             -1.0_dp)*exp_term/lambda
@@ -811,7 +825,7 @@ contains
 
     do nalv = 1,num_units
 
-        alv_unit_field_pre(nu_vol,nalv)=unit_field_pre(nu_vol,nalv)/26000000
+        alv_unit_field_pre(nu_vol,nalv)=unit_field_pre(nu_vol,nalv)/26000000 !mm3 to cm3
 
         alv_radii_pre(nu_vol,nalv) = ((3.0_dp * alv_unit_field_pre(nu_vol,nalv)) / (4.0_dp * PI)) ** (1.0_dp / 3.0_dp)
 
@@ -820,7 +834,7 @@ contains
 
         !alv_unit_field(nu_vol,nalv) = unit_field(nu_vol,nalv)
 
-        alv_unit_field_current(nu_vol,nalv)=unit_field_current(nu_vol,nalv)/26000000
+        alv_unit_field_current(nu_vol,nalv)=unit_field_current(nu_vol,nalv)/26000000 !mm3 to cm3
 
         alv_radii_current(nu_vol,nalv) = ((3.0_dp * alv_unit_field_current(nu_vol,nalv)) / (4.0_dp * PI)) ** (1.0_dp / 3.0_dp)
 
@@ -828,11 +842,6 @@ contains
 
 
         alv_dA(nu_vol,nalv)=(alv_area_current(nu_vol,nalv)-alv_area_pre(nu_vol,nalv))/dt
-
-
-
-!      alv_collapse_pressure(nu_vol,nalv)= ((2.0 *surface_tension(nu_vol,nalv)) /alv_radii_current(nu_vol,nalv))/10.0
-
 
 !
 !
@@ -1400,15 +1409,16 @@ contains
     
     if(abs(time).lt.zero_tol)then
 !!! write out the header information for run-time output
-       write(*,'(2X,''Time'',3X,''Inflow'',4X,''V_t'',5X,''Raw'',5X,&
-            &''Comp'',4X,''Ppl'',5X,''Ptp'',5X,''VolL'',4X,''Pmus'',&
-            &4X,''Pcw'',2X,''Pmus-Pcw'',4X,''Sur_con'',4X,''Pc'',3X, &
-            &''aarea1'',3X,''arad1'',3X,''adA1'')')
+       write(*,'(2X,''Time'',3X,''Inflow'',4X,''V_t'',6X,''Raw'',6X,&
+            &''Comp'',5X,''Ppl'',6X,''Ptp'',6X,''VolL'',5X,''Pmus'',&
+            &5X,''Pcw'',4X,''Pmus-Pcw'',5X,''Aci_vol'',6X,''Alv_vol'',&
+            &7X,''Sur_con'',8X,''Pc'',9X,''Pe'',8X,''Pe_com'',9X,''Tension'',9X,''Pc_com''9X,&
+            ''smoothed_Pc_com'')')
        write(*,'(3X,''(s)'',4X,''(mL/s)'',3X,''(mL)'',1X,''(cmH/L.s)'',&
             &1X,''(L/cmH)'',1X,''(...cmH2O...)'',&
             &4X,''(L)'',5X,''(......cmH2O.......)'')')
        
-       write(*,'(F7.3,2(F8.1),8(F9.2),8(F13.9),9(F13.9))') &
+       write(*,'(F7.3,2(F8.1),8(F9.2),8(F15.9),10(F15.6))') &
             0.0_dp,0.0_dp,0.0_dp, &  !time, flow, tidal
             elem_field(ne_t_resist,1)*1.0e+6_dp/98.0665_dp, & !res (cmH2O/L.s)
             totalC*98.0665_dp/1.0e+6_dp, & !total model compliance
@@ -1418,10 +1428,15 @@ contains
             0.0_dp, & !Pmuscle (cmH2O)
             Pcw/98.0665_dp, & !Pchest_wall (cmH2O)
             (-Pcw)/98.0665_dp, & !Pmuscle - Pchest_wall (cmH2O)
-            alv_unit_field_current(nu_vol,1), &
-            surf_concentration(nu_vol,1),&
-            alv_collapse_pressure(nu_vol,1)/98.0665_dp
-            !unit_field(nu_vol,1)!, &
+            unit_field_current(nu_vol,1), &
+            alv_unit_field_current(nu_vol,1)*1000, & !mm^3
+            surf_concentration(nu_vol,1),& !g/cm^2
+            Pc(nu_vol,1)/98.0665_dp,& !alv_collapse_pressure (cmH2O)
+            unit_field(nu_pe,1), &
+            unit_field(nu_comp,1), & !unit_field(nu_vol,1), &
+            surface_tension(nu_vol,1),&
+            Pc_com(nu_vol,1),&
+            smoothed_Pc_com(nu_vol,1)
             !alv_unit_field(nu_vol,1), &
             !alv_radii(nu_vol,1), &
             !alv_area(nu_vol,1), &
@@ -1429,7 +1444,7 @@ contains
             !unit_field_pre(nu_vol,1),&
             !unit_field_current(nu_vol,1)
     else
-       write(*,'(F7.3,2(F8.1),8(F9.2),8(F13.9),9(F13.9))') &
+       write(*,'(F7.3,2(F8.1),8(F9.2),8(F15.9),10(F15.6))') &
             time, & !time through breath (s)
             elem_field(ne_Vdot,1)/1.0e+3_dp, & !flow at the inlet (mL/s)
             (current_vol - init_vol)/1.0e+3_dp, & !current tidal volume (mL)
@@ -1441,11 +1456,15 @@ contains
             p_mus/98.0665_dp, & !Pmuscle (cmH2O)
             -Pcw/98.0665_dp, & !Pchest_wall (cmH2O)
             (p_mus+Pcw)/98.0665_dp, & !Pmuscle - Pchest_wall (cmH2O)
-            alv_unit_field_current(nu_vol,1), &
-            surf_concentration(nu_vol,1), &
-            alv_collapse_pressure(nu_vol,1)/98.0665_dp
-            !unit_field(nu_vol,1)!, &
-
+            unit_field_current(nu_vol,1), &
+            alv_unit_field_current(nu_vol,1)*1000, & !mm^3
+            surf_concentration(nu_vol,1), & !g/cm^2
+            Pc(nu_vol,1)/98.0665_dp,&  !alv_collapse_pressure (cmH2O)
+            unit_field(nu_pe,1), &
+            unit_field(nu_comp,1), & !unit_field(nu_vol,1), &
+            surface_tension(nu_vol,1),&
+            Pc_com(nu_vol,1),&
+            smoothed_Pc_com(nu_vol,1)
             !alv_radii(nu_vol,1), &
             !alv_area(nu_vol,1), &
             !alv_dA(nu_vol,1)!,&
