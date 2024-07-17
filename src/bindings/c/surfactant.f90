@@ -50,7 +50,7 @@ contains
   end subroutine update_surfactant_concentration_c
 !################################################################################
 
-  subroutine update_surface_tension_c(surf_concentration, surface_tension, alv_radii_current, alv_collapse_pressure) &
+  subroutine update_surface_tension_c(surf_concentration, surface_tension, alv_radii_current, Pc) &
           bind(C, name="update_surface_tension_c")
 
     use surfactant, only: update_surface_tension
@@ -63,11 +63,11 @@ contains
 
     real(dp), dimension(:,:), intent(inout) :: surface_tension
 
-    real(dp), dimension(:,:), intent(out) :: alv_collapse_pressure
+    real(dp), dimension(:,:), intent(out) :: Pc
 
 
 
-    call update_surface_tension(surf_concentration, surface_tension, alv_radii_current, alv_collapse_pressure)
+    call update_surface_tension(surf_concentration, surface_tension, alv_radii_current, Pc)
 
 
   end subroutine update_surface_tension_c
