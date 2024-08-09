@@ -3127,6 +3127,7 @@ contains
        random_number=random_number+0.1_dp
        if(random_number.GT.1.0_dp) random_number=-1.1_dp
        unit_field(nu_vol,nunit)=(Vmax*Xi+Vmin*(1.0_dp-Xi))*(1.0_dp+COV*random_number)
+
        unit_field(nu_vt,nunit)=0.0_dp !initialise the tidal volume to a unit
     enddo !nunit
     
@@ -3135,8 +3136,11 @@ contains
     factor_adjust = (total_volume-volume_of_tree)/(volume_estimate-volume_of_tree)
     do nunit=1,num_units
        unit_field(nu_vol,nunit) = unit_field(nu_vol,nunit)*factor_adjust
+       !set the alveolus unit initial volume
+       alv_unit_field(nu_vol,nunit) = unit_field(nu_vol,nunit)/26000000
     enddo
-    
+
+
     write(*,'('' Number of elements is '',I5)') num_elems
     write(*,'('' Initial volume is '',F6.2,'' L'')') total_volume/1.0e+6_dp
     write(*,'('' Deadspace volume is '',F6.1,'' mL'')') volume_of_tree/1.0e+3_dp
