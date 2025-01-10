@@ -191,6 +191,7 @@ contains
 
 
 
+!    print*,'elem', elem_units_below(1)
 
 
 
@@ -290,7 +291,7 @@ contains
 
 
 !!! solve for additional half breath (for time +Tinsp)
-    n=n+1 !number of breath
+    n=n+1! number of breath
     ttime=0.0_dp !each breath starts with ttime =0
     endtime = endtime +  Tinsp
     p_mus = 0.0_dp
@@ -438,9 +439,9 @@ contains
 !    If (time .ge. 4.0_dp) then
     call update_alveolar_info(dt, alv_dA)
 
-    call update_surfactant_concentration(dt, alv_area_current, alv_dA, surf_concentration,surf_concentration_pre)
+    call update_surfactant_concentration(dt, alv_area_current, alv_dA, surf_concentration)
 
-    call update_surface_tension(surf_concentration_pre, surface_tension,surface_tension_pre)
+    call update_surface_tension(surf_concentration, surface_tension)
 
     call update_Pc_compliance(unit_field,alv_radii_current,surface_tension, Pc, Pc_com, smoothed_Pc_com)
 
@@ -487,7 +488,7 @@ contains
 
   subroutine evaluate_uniform_flow
     !*evaluate_uniform_flow:* Sets up and solves uniform ventilation model
-  
+
     ! Local variables
     integer :: ne,nunit
     real(dp) :: init_vol,volume_tree
@@ -749,8 +750,8 @@ contains
        unit_field(nu_comp,nunit) = undef/unit_field(nu_comp,nunit)
 
        !add the Pc compliance in parallel(chest wall shouldn't include in)
-!       unit_field(nu_comp,nunit) =1.0_dp/(1.0_dp/unit_field(nu_comp,nunit)&
-!                   +1.0_dp/Pc_com(nu_vol,nunit))
+       unit_field(nu_comp,nunit) =1.0_dp/(1.0_dp/unit_field(nu_comp,nunit)&
+                   +1.0_dp/Pc_com(nu_vol,nunit))
 
 
        !estimate an elastic recoil pressure for the unit
@@ -758,7 +759,7 @@ contains
             -1.0_dp)*exp_term/lambda
 
        !estimate an elastic recoil pressure for the unit + Collapse pressure
-!       unit_field(nu_pe,nunit)=unit_field(nu_pe,nunit) +  Pc(nu_vol,nunit) !0.3_dp*
+       unit_field(nu_pe,nunit)=unit_field(nu_pe,nunit) +  Pc(nu_vol,nunit) !0.3_dp*
 
 
     enddo !nunit
@@ -877,20 +878,21 @@ contains
 
     do nunit = 1,num_units
         !pre_step alveolus volume cm3
+        !assume alveolus shape is hemisphere
         alv_unit_field_pre(nu_vol,nunit)=unit_field_pre(nu_vol,nunit)/26000000 !mm3 to cm3
 
-        alv_radii_pre(nu_vol,nunit) = ((3.0_dp * alv_unit_field_pre(nu_vol,nunit)) / (4.0_dp * PI)) &
+        alv_radii_pre(nu_vol,nunit) = ((3.0_dp * alv_unit_field_pre(nu_vol,nunit)) / (2.0_dp * PI)) &
                 **(1.0_dp/3.0_dp)
 
-        alv_area_pre(nu_vol,nunit)=4.0_dp * PI * (alv_radii_pre(nu_vol,nunit)**2.0_dp)
+        alv_area_pre(nu_vol,nunit)=2.0_dp * PI * (alv_radii_pre(nu_vol,nunit)**2.0_dp)
 
         !current alveolus volume cm3
         alv_unit_field_current(nu_vol,nunit)=unit_field_current(nu_vol,nunit)/26000000 !mm3 to cm3
 
-        alv_radii_current(nu_vol,nunit) = ((3.0_dp * alv_unit_field_current(nu_vol,nunit)) / (4.0_dp * PI)) &
+        alv_radii_current(nu_vol,nunit) = ((3.0_dp * alv_unit_field_current(nu_vol,nunit)) / (2.0_dp * PI)) &
                 **(1.0_dp/3.0_dp)
 
-        alv_area_current(nu_vol,nunit)=4.0_dp * PI * (alv_radii_current(nu_vol,nunit)**2.0_dp)
+        alv_area_current(nu_vol,nunit)=2.0_dp * PI * (alv_radii_current(nu_vol,nunit)**2.0_dp)
 
         !Area difference
         alv_dA(nu_vol,nunit)=(alv_area_current(nu_vol,nunit)-alv_area_pre(nu_vol,nunit))/dt
@@ -1061,7 +1063,7 @@ contains
             +unit_field(nu_Vdot1,nunit))/2.0_dp
        unit_field(nu_Vdot0,nunit) = elem_field(ne_Vdot,ne)
     enddo !nunit
-
+!    print*,'Q',Q
     ! the estimate of error for the iterative solution
     if(abs(flow_sum*dble(num_units)).gt.zero_tol) then
        err_est = err_est/(flow_sum*dble(num_units))
@@ -1468,7 +1470,7 @@ contains
             &1X,''(L/cmH)'',1X,''(...cmH2O...)'',&
             &4X,''(L)'',5X,''(......cmH2O.......)'')')
        
-       write(*,'(F7.3,2(F8.1),8(F9.2),8(F16.8),10(F14.8))') &
+       write(*,'(F7.3,2(F8.1),8(F9.2),8(F18.8),10(F18.6))') &
             0.0_dp,0.0_dp,0.0_dp, &  !time, flow, tidal
             elem_field(ne_t_resist,1)*1.0e+6_dp/98.0665_dp, & !res (cmH2O/L.s)
             totalC*98.0665_dp/1.0e+6_dp, & !total model compliance
@@ -1494,15 +1496,15 @@ contains
             surface_tension(nu_vol,1),&
             Pc_com(nu_vol,1),&
             smoothed_Pc_com(nu_vol,1),&
-            elem_field(ne_radius,1),&
-            elem_field(ne_radius,4)
+            unit_field(nu_Vdot0,1),&
+            elem_field(ne_Vdot,1)
             !alv_radii(nu_vol,1), &
 !            node_field(nj_aw_press,1), &
 !            unit_field(nu_Vdot0,1)!,&
             !unit_field_pre(nu_vol,1),&
             !unit_field_current(nu_vol,1)
     else
-       write(*,'(F7.3,2(F8.1),8(F9.2),8(F16.8),10(F14.8))') &
+       write(*,'(F7.3,2(F8.1),8(F9.2),8(F18.8),10(F18.6))') &
             time, & !time through breath (s)
             elem_field(ne_Vdot,1)/1.0e+3_dp, & !flow at the inlet (mL/s)
             (current_vol - init_vol)/1.0e+3_dp, & !current tidal volume (mL)
@@ -1530,8 +1532,8 @@ contains
             surface_tension(nu_vol,1),&
             Pc_com(nu_vol,1),&
             smoothed_Pc_com(nu_vol,1),&
-            elem_field(ne_length,1),&
-            elem_field(ne_length,4)
+            unit_field(nu_Vdot0,1),&
+            elem_field(ne_Vdot,1)
             !alv_radii(nu_vol,1), &
 !            node_field(nj_aw_press,1), &
 !            unit_field(nu_Vdot0,1)!,&
