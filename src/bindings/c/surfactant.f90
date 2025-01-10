@@ -28,8 +28,8 @@ contains
 
 !##############################################################################
 
-  subroutine update_surfactant_concentration_c (dt, alv_area_current, alv_dA, surf_concentration) &
-          bind(C, name="update_surfactant_concentration_c")
+  subroutine update_surfactant_concentration_c (dt, alv_area_current, alv_dA, surf_concentration&
+          ) bind(C, name="update_surfactant_concentration_c")
 
     use surfactant, only: update_surfactant_concentration
     use arrays,only: dp
@@ -50,7 +50,7 @@ contains
   end subroutine update_surfactant_concentration_c
 !################################################################################
 
-  subroutine update_surface_tension_c(surf_concentration, surface_tension, alv_radii_current, Pc) &
+  subroutine update_surface_tension_c(surf_concentration, surface_tension) &
           bind(C, name="update_surface_tension_c")
 
     use surfactant, only: update_surface_tension
@@ -59,15 +59,14 @@ contains
 
     real(dp), dimension(:,:), intent(in) :: surf_concentration
 
-    real(dp), dimension(:,:), intent(in) :: alv_radii_current
+
 
     real(dp), dimension(:,:), intent(inout) :: surface_tension
 
-    real(dp), dimension(:,:), intent(out) :: Pc
 
 
 
-    call update_surface_tension(surf_concentration, surface_tension, alv_radii_current, Pc)
+    call update_surface_tension(surf_concentration, surface_tension)
 
 
   end subroutine update_surface_tension_c

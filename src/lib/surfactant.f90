@@ -24,14 +24,14 @@ module surfactant
 
 
   !Module parameters
-  real(dp), parameter :: gamma_star = (0.3e-6_dp * 1.274464457_dp)!g/cm^2 0.90520493_ * 0.061636_dp 1.327915519_
-  real(dp), parameter :: m2 = 140_dp !140.0_dp !slope
-  real(dp), parameter :: surface_tension_hat = (22.02_dp*0.12509911_dp)*1.15_dp !22.02_dp !dyn/cm  *0.005278_dp 0.12509917_dp
-  real(dp), parameter :: surface_tension_min= 1.0_dp   !1.0_dpdyn/cm *0.85_dp
+  real(dp), parameter :: gamma_star = (0.3e-6_dp)!g/cm^2 0.90520493_ * 0.061636_dp 1.327915519_   * 1.274464457_dp
+  real(dp), parameter :: m2 = 140_dp   !140.0_dp !slope
+  real(dp), parameter :: surface_tension_hat = (22.0_dp)!22.02_dp !dyn/cm  *0.005278_dp 0.12509917_dp *0.12509911_dp)*1.15
+  real(dp), parameter :: surface_tension_min= 1.0_dp  !1.0_dpdyn/cm *0.85_dp
   real(dp), parameter :: gamma_max =  gamma_star*(1+(surface_tension_hat-surface_tension_min)/m2)! 0.345e-6_dp !g/cm^2
-  real(dp), parameter :: bulk_c =10e-3_dp  ! bulk concentration  g/ml 0.1_dp
-  real(dp), parameter :: k_a = (10000.0_dp*0.12509911_dp) ! adsorption coefficient  ml/(g*sec) rate_diff_*0.117956756_dp  *0.113705033_dp
-  real(dp), parameter :: k_d = k_a/((1.2_dp)*(10.0_dp**5)) !desorption coefficient sec^(-1)
+  real(dp), parameter :: bulk_c = 10e-3_dp  ! bulk concentration  g/ml 0.1_dp
+  real(dp), parameter :: k_a = (1667.0_dp) ! adsorption coefficient  ml/(g*sec) rate_diff_*0.117956756_dp  *0.113705033_dp  *0.12509911_dp 1667.6667
+  real(dp), parameter :: k_d = k_a/((1.0_dp)*(10.0_dp**5)) !desorption coefficient sec^(-1)
   !real(dp), parameter :: frequency = 0.25_dp ! frequency of breathing per minute
   real(dp), dimension(:,:), allocatable :: surf_concentration_pre
 !  real(dp), dimension(:,:), allocatable :: surface_tension_pre
@@ -110,8 +110,8 @@ subroutine evaluate_surf !(num_steps, dt, t, volumes, radii, area, dA, surf_conc
      ! call update_unit_volume(dt)
       !call update_surface_area(volumes, radii, area, dA)
 
-      call update_surfactant_concentration(dt, alv_area_current, alv_dA, surf_concentration,surf_concentration_pre)
-      call update_surface_tension(surf_concentration, surface_tension,surface_tension_pre)
+      call update_surfactant_concentration(dt, alv_area_current, alv_dA, surf_concentration)
+      call update_surface_tension(surf_concentration, surface_tension)
 !      call alv_collapse_pressure(alv_radii_current, surface_tension, alv_collapse_pressure)
 
       !call write_results(volumes,radii,area,dA, surf_concentration,surface_tension)
@@ -144,10 +144,10 @@ subroutine evaluate_surf !(num_steps, dt, t, volumes, radii, area, dA, surf_conc
 !
 !*subname:* calculate surfactant concentration in each alveolar unit
 
-  subroutine update_surfactant_concentration(dt, alv_area_current, alv_dA, surf_concentration,surf_concentration_pre)
+  subroutine update_surfactant_concentration(dt, alv_area_current, alv_dA, surf_concentration)
 
     real(dp), dimension(:,:), intent(in) :: alv_area_current, alv_dA
-    real(dp), dimension(:,:), intent(inout) :: surf_concentration_pre
+
     real(dp), dimension(:,:), intent(inout) :: surf_concentration
 
     integer :: nalv
@@ -170,7 +170,7 @@ subroutine evaluate_surf !(num_steps, dt, t, volumes, radii, area, dA, surf_conc
     do nalv = 1,num_units
 
 !    ratio= surf_concentration(nu_vol,nalv)/gamma_star
-      surf_concentration_pre(nu_vol,nalv)=surf_concentration(nu_vol,nalv)
+
 
       if (surf_concentration(nu_vol,nalv) .lt. gamma_star) then
         surf_concentration(nu_vol,nalv)=surf_concentration(nu_vol,nalv)+dt*(k_a*bulk_c &
@@ -198,13 +198,13 @@ subroutine evaluate_surf !(num_steps, dt, t, volumes, radii, area, dA, surf_conc
 !
 !*subname:* calculate surface tension an collapse pressure for each alveolar unit
 
-  subroutine update_surface_tension(surf_concentration_pre, surface_tension, surface_tension_pre)
+  subroutine update_surface_tension(surf_concentration, surface_tension)
 
-    real(dp), dimension(:,:), intent(in) :: surf_concentration_pre
+    real(dp), dimension(:,:), intent(in) :: surf_concentration
 !    real(dp), dimension(:,:), intent(in) :: alv_area_current
 !    real(dp), intent(in) :: undef
 !    real(dp):: undef_alv
-    real(dp), dimension(:,:), intent(inout) :: surface_tension_pre
+
     real(dp), dimension(:,:), intent(inout) :: surface_tension
 
 !    real(dp), dimension(:,:), allocatable :: Pc_pre
@@ -238,17 +238,17 @@ subroutine evaluate_surf !(num_steps, dt, t, volumes, radii, area, dA, surf_conc
 
 
     do nalv = 1,num_units
-      surface_tension_pre(nu_vol,nalv) = surface_tension(nu_vol,nalv)
 
 
-      if (surf_concentration_pre(nu_vol,nalv) .lt. gamma_star) then
-        surface_tension(nu_vol,nalv)=(surface_tension_hat-70)*(surf_concentration_pre(nu_vol,nalv)/gamma_star)+70
 
-      elseif ((surf_concentration_pre(nu_vol,nalv) .gt. gamma_max)) then!.and. (dA(i) .lt. 0.0)) then
+      if (surf_concentration(nu_vol,nalv) .lt. gamma_star) then
+        surface_tension(nu_vol,nalv)=(surface_tension_hat-70)*(surf_concentration(nu_vol,nalv)/gamma_star)+70
+
+      elseif ((surf_concentration(nu_vol,nalv) .gt. gamma_max)) then!.and. (dA(i) .lt. 0.0)) then
         surface_tension(nu_vol,nalv)=-m2*(gamma_max/gamma_star)+(m2+surface_tension_hat)
 
       else
-        surface_tension(nu_vol,nalv)=-m2*(surf_concentration_pre(nu_vol,nalv)/gamma_star)+(m2+surface_tension_hat)
+        surface_tension(nu_vol,nalv)=-m2*(surf_concentration(nu_vol,nalv)/gamma_star)+(m2+surface_tension_hat)
       end if
 
 

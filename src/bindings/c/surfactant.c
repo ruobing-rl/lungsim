@@ -14,8 +14,8 @@ void update_surfactant_concentration (double dt, double alv_area_current, double
 }
 
 
-void update_surface_tension_c (double *surf_concentration, double *surface_tension,double *alv_radii_current,double *Pc);
-void update_surface_tension (double surf_concentration, double surface_tension,double alv_radii_current,double Pc)
+void update_surface_tension_c (double *surf_concentration, double *surface_tension);
+void update_surface_tension (double surf_concentration, double surface_tension)
 {
-   update_surface_tension_c (&surf_concentration, &surface_tension, &alv_radii_current, &Pc);
+   update_surface_tension_c (&surf_concentration, &surface_tension);
 }
